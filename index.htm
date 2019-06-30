@@ -59,7 +59,7 @@
         var usersArr;
         var current;
         var random3 = "guy";
-        
+        var isRegisterValid = false;
         var first = true;
         var loginPhotos = [];
         const app = angular.module('myApp', ['ngRoute']);
@@ -85,7 +85,80 @@
                 });
             
             });
-            app.controller('registerCtrl', function($scope, $http) {
+            app.controller('singleCtrl', function($scope, $http) {
+                $scope.getDetailed=function(givenId)
+                {
+                    var id = givenId;
+                    while(id.indexOf(" ")!=-1)
+                    {
+                        id= id.replace(" ","+");
+                    }
+                    $http({
+                        method : "GET",
+                        url : "http://localhost:3000/DetailedPOI?id="+id
+                        }).then(function mySuccess(response) {
+                            $scope.Viewrs = "Number of Viewers: " + response.data[0]["views"];
+                            var titleDes = document.getElementById("descriptionH4");
+                            var description = "";
+                            var temp = response.data[0]["description"];
+                            var split = temp.split(" ");
+                            for(var i=0;i<split.length;i++)
+                            {
+                                description = description + " "+split[i];
+                                if(i%13==12)
+                                    description = description +"</br>";
+                            }
+                            titleDes.innerHTML = "Description: "+ description;
+
+                            var score = parseInt(response.data[0]["score"]);
+                            score = score/5.0;
+                            score = score * 100;
+                            $scope.Rank = "Rank: "+score+"%";
+                            var src = response.data[0]["pictureName"];
+                            var singleImage = document.getElementById("singlePhotoImage");
+                            singleImage.src = src;
+                            $http({
+                                method : "GET",
+                                url : "http://localhost:3000/GetFeedbacksPOI?id="+id
+                                }).then(function mySuccess(response) {
+                                    if(response.data.length<2)
+                                    {
+                                        $scope.Review2 = "";
+                                        if(response.data.length==0)
+                                        {
+                                            $scope.Review1 = "No reviews available";
+                                            
+                                        }
+                                        else
+                                        {
+                                            $scope.Review1 = "Review 1 - by "+response.data[0]["username"] +" rank "+response.data[0]["rank"]
+                                            + "\n"+response.data[0]["text"];
+
+                                        }
+                                    }
+                                    else
+                                    {
+                                        $scope.Review1 = "Review 1 - by "+response.data[0]["username"] +" rank "+response.data[0]["rank"]
+                                            + "\n"+response.data[0]["text"];
+                                            $scope.Review2 = "Review 2 - by "+response.data[1]["username"] +" rank "+response.data[1]["rank"]
+                                            + "\n"+response.data[1]["text"];
+                                    }
+                           
+                                    
+                              })
+                            
+
+                            
+                        
+                            }, function myError(response) {
+                                
+                            
+                            
+                            
+                        });
+                }
+            });
+        app.controller('registerCtrl', function($scope, $http) {
             $http({
                 method : "GET",
                 url : "http://localhost:3000/GetAllPOIs"
@@ -110,7 +183,55 @@
                     
                     
                 });
+                
+                $scope.submit = function()
+                {
             
+                 
+                 
+                      
+                        var newUser = Submit();
+                        $http({
+                            method: "POST",
+                            url: "http://localhost:3000/registerUser",
+                            data: {username : newUser.username,
+                                   password : newUser.password,
+                                   firstName : newUser.firstName,
+                                   lastName : newUser.lastName,
+                                   city : newUser.city,
+                                   country : newUser.country,
+                                   email : newUser.email,
+                                   category1 : newUser.categories[0],
+                                   category2 : newUser.categories[1]
+                                 }
+                        }).then(function mySuccess(response) {
+                    
+                            //Worked
+                            $http({
+                            method: "POST",
+                            url: "http://localhost:3000/insertQuestion",
+                            data: {username : newUser.username,
+                                   question : newUser.question,
+                                   answer : newUser.answer
+                                 }
+                        }).then(function mySuccess(response) {
+                    
+                            //Worked
+                            
+                    }, function myError(response) {
+                        
+                    //error
+                    
+                     });
+                            
+                    }, function myError(response) {
+                        
+                    //error
+                    
+                     });
+
+                    
+                }
             });
         var src;
         var checkedSort = false;
@@ -215,7 +336,7 @@
                             if(section_name === "about")
                             {
                                 document.body.style.backgroundImage = "url('source/background_game.jpg')";
-                                addAboutPhotos();
+                               // addAboutPhotos();
                             }
                             else
                             {
@@ -240,6 +361,11 @@
             
 
 
+        }
+        function makeValid()
+        {
+            
+            angular.element(document.getElementById('signup')).scope().submit();
         }
         function getCurrentSection(element)
         {
@@ -340,14 +466,14 @@
             
             for(var i=0;i<images.length;i++)
             {
-                
+            
                 let id = images[i].id
-                if(id != "singlePhotoImage" && id.substring(0,5)!="small" && id!="logo" && id.substring(0,6)!="2small")
+                if(id != "singlePhotoImage" && id.substring(0,5)!="small" && id!="logo" && id.substring(0,6)!="2small" && id.substring(0,9)!="about_img")
                 {
-                    src[images[i].id] =images[i].src;
+                    //src[images[i].id] =images[i].src;
                     images[i].onclick = function ()
                     {
-                        displaySinglePhoto(src[id]);
+                        displaySinglePhoto(id);
                     };
                 }
                 
@@ -378,12 +504,15 @@
                 hello.innerHTML = helloString + current.username;
             }
         }
-        function displaySinglePhoto (src)
+        function displaySinglePhoto (id)
         {
-            var id = "singlePhotoImage";
-            var singleImage = document.getElementById(id);
             
-            singleImage.src = src;
+            var sectionId = "singlePhoto";
+            
+            //here add control to section
+            var src = angular.element(document.getElementById(sectionId)).scope().getDetailed(id.substring(3));
+            
+
             GoTo('singlePhoto');
         }
     </script>
@@ -588,7 +717,7 @@
 </ul>
 
 
-<section id="singlePhoto" >
+<section id="singlePhoto" ng-controller = "singleCtrl">
     <style>
         #singlePhoto
         {
@@ -623,11 +752,11 @@
     <div id="singlePhotoDiv" class="userdiv">
             <img height="600" width= "600" id="singlePhotoImage">
         <div id="list_statistics" display ="block">
-            <p class="li_statistics"><h1>Number of Viewers: </h1></p>
-            <p class="li_statistics"><h4>Description: </h4></p>
-            <p class="li_statistics"><h1>Rank: </h1></p>
-            <p class="li_statistics"><h4>Review 1: </h4></p>
-            <p class="li_statistics"><h4>Review 2: </h4></p>
+            <p class="li_statistics"><h1>{{Viewrs}}</h1></p>
+            <p class="li_statistics"><h4 id="descriptionH4"> </h4></p>
+            <p class="li_statistics"><h1>{{Rank}}</h1></p>
+            <p class="li_statistics"><h4>{{Review1}} </h4></p>
+            <p class="li_statistics"><h4>{{Review2}} </h4></p>
         </div>
     </div>
     
@@ -754,7 +883,7 @@
         <form id="sign_up_form">
             
             <!--Username-->
-            <label id="username_lbl" for="username_signup" class="sign_up_labels_signup">Username</label>
+            <label id="username_lbl" for="username_signup" class="sign_up_labels_signup" >Username</label>
             <input class="inptUser_signup" type="text" id="username_signup" placeholder="Username" name="username">
             <!--Password-->
             <label for="password_signup" class="sign_up_labels_signup" id="password_lbl">Password</label>
@@ -796,7 +925,7 @@
             <br/>
             <label id = "errors_signup" class="errorMessages"></label>
             <br/>
-            <input class="btn" type="submit" id="submit_btn" value="Submit" >
+            <input class="btn" type="submit" id="submit_btn" value="Submit">
         </form>
         
         <br/>
@@ -813,13 +942,7 @@
         <br/>
     </div>
     <script type="text/javascript">
-        function test()
-        {
-            
-            var section = document.getElementById("login");
-
-            addCustomImage("source/about1.jpeg",400,400,section,"id");
-        }
+     
         function addCustomImage(srcBig,width,height,element,id)
         {
         
@@ -947,7 +1070,7 @@
             newUser.username = username;
             newUser.password = password;
             newUser.firstName = firstName;
-            newUser.lastname = lastName;
+            newUser.lastName = lastName;
             newUser.email = email;
             newUser.country = country;
             newUser.city = city;
@@ -957,6 +1080,7 @@
             //newUser.birthdate = birthDate;
             usersArr.push(newUser);
             GoTo('login');
+            return newUser;
             
 
         }
@@ -1387,12 +1511,13 @@
         and history, but also, increasingly, of modern culture and heritage, it is a city with so much
         to offer that you could spend years here and still not see everything</h1>
         <div id="about_images_part1">
-        
-        
+        <img src ="source/about1.jpeg" width="600" height= "600" id="about_img1">
+        <img src ="source/about2.jpeg" width="600" height= "600" id="about_img2">
         </div>
         <br/>
         <div id="about_images_part2">
-        
+            <img src ="source/about3.jpeg" width="600" height= "600" id="about_img3">
+            <img src ="source/about4.jpeg" width="600" height= "600" id="about_img4">
         </div>
 
         <script type="text/javascript">

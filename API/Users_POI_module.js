@@ -55,6 +55,29 @@ var GetFavoritesCount = function GetFavoritesCount(req, res) {
         res.status(403).json({ error });
     }
 };
+var GetFeedbackPOI = function GetFeedbackPOI(req, res) {
+    var id =JSON.stringify(req.query.id);
+    var newId = id;
+    while(newId.indexOf("+")!=-1)
+    {
+        newId= newId.replace("+"," ");
+    }
+
+    if (validator.validateInjection(req)) {
+        DButilsAzure.execQuery("SELECT * FROM reviews WHERE poiName='" + newId.substring(1,newId.length-1) + "'")
+            .then(function (result) {
+                res.send(result);
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.send(err);
+            })
+    }
+    else {
+        const error = "bad input";
+        res.status(403).json({ error });
+    }
+};
 
 var GetAllFavoritesPOIs = function GetAllFavoritesPOIs(req, res) {
     if (validator.validateInjection(req)) {
@@ -120,4 +143,4 @@ var UpdateFavoritesListOrder = function UpdateFavoritesListOrder(req, res) {
 
 
 
-module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder};
+module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI};

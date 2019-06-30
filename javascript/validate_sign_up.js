@@ -62,7 +62,7 @@ $(document).ready(function () {
         },
         submitHandler: function (form) {
 
-            Submit();
+            makeValid();
 
         }
     });

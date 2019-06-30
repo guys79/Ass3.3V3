@@ -53,7 +53,14 @@ var GetRandomPopularPOI = function GetRandomPopularPOI(req, res) {
 };
 
 var DetailedPOI = function DetailedPOI(req, res) {
-    DButilsAzure.execQuery('SELECT * FROM pois WHERE poiName=' + "'" + req.query.id + "'")
+    var id =JSON.stringify(req.query.id);
+    var newId = id;
+    while(newId.indexOf("+")!=-1)
+    {
+        newId= newId.replace("+"," ");
+    }
+    console.log(newId);
+    DButilsAzure.execQuery('SELECT * FROM pois WHERE poiName=' + "'" +  newId.substring(1,newId.length-1) + "'")
         .then(function (result) {
             res.send(result);
         })
