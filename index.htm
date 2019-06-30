@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html  ng-app = "myApp">
 <!--Create all the images using addCustomImage-->
 <head>
     <title>Guy and Jonathan's POI</title>
@@ -59,6 +59,7 @@
         var usersArr;
         var current;
         var random3 = "guy";
+        
         var first = true;
         var loginPhotos = [];
         const app = angular.module('myApp', ['ngRoute']);
@@ -75,14 +76,39 @@
                         loginPhotos[response.data[i]["poiName"]]=response.data[i]["pictureName"];
                     }
                     addLoginPhotosNoParams();
-                    //random3 = $scope;
-                    //random3.$apply();
+                    
                     }, function myError(response) {
                         
                     
                     $scope.Explore = "Explore"
-                    //random3 = $scope;
-                    //random3.$apply();
+                    
+                });
+            
+            });
+            app.controller('registerCtrl', function($scope, $http) {
+            $http({
+                method : "GET",
+                url : "http://localhost:3000/GetAllPOIs"
+                }).then(function mySuccess(response) {
+                    
+                    var categories = document.getElementById("category_signup");
+                    var set = new Set([]);
+                    for(var i=0; i<response.data.length;i++)
+                    {
+                        set.add(response.data[i]["category"]);
+                        
+                    }
+                    for (let item of set)
+                    {
+                        var option = document.createElement("option");
+                        option.text = item;
+                        categories.add(option);
+                    }
+                    
+                    }, function myError(response) {
+                        
+                    
+                    
                 });
             
             });
@@ -607,7 +633,7 @@
     
 
 </section>
-<section id="signup" display="none">
+<section id="signup" display="none" ng-controller = "registerCtrl">
     <style>
         .userdiv{
 
@@ -765,11 +791,7 @@
             <label for="category_signup" class="sign_up_labels_signup" id="category_lbl">Categories</label>
             <br/>
             <select multiple name="Categories" id="category_signup" class="inptUser_signup">
-                <option>Category1</option>
-                <option>Category2</option>
-                <option>Category3</option>
-                <option>Category4</option>
-                <option>Category5</option>
+               
              </select>
             <br/>
             <label id = "errors_signup" class="errorMessages"></label>
@@ -953,7 +975,7 @@
         }
     </script>
 </section>
-<section id="login" display="none"  ng-app="myApp"  ng-controller="loginCtrl" >
+<section id="login" display="none"    ng-controller="loginCtrl" >
         <style>
     
         
