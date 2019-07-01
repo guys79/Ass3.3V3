@@ -58,6 +58,8 @@
         window.addEventListener("load",Initialize);
         var usersArr;
         var current;
+        var firstCategory = true;
+        var modalPoi = "";
         var random3 = "guy";
         var isRegisterValid = false;
         var first = true;
@@ -85,6 +87,36 @@
                 });
             
             });
+            
+        app.controller('modalCtrl',function($scope,$http)
+            {
+                $scope.saveReview = function(given_text,num,poiID,given_username)
+                {
+                    $http({
+                    method: "POST",
+                    url:"http://localhost:3000/poiFeedback",
+                    data: {username:given_username, 
+                        text:given_text,
+                        score:num,
+                        poiName:poiID
+                    }
+
+                    }).then(function mySuccess(response)
+                        {
+                            //The counter...
+                            //here
+                            GoTo(prevSection);
+                        },
+                        function myFailure(response)
+                        {
+
+                        }
+                    )
+                }
+               
+
+            }
+        );
         app.controller('restoreCtrl',function($scope,$http)
         {
             $scope.getQuestions= function(username)
@@ -142,6 +174,149 @@
             }
 
         });
+        app.controller('getPOI', function ($scope, $http) {
+
+            $scope.getCategories = function (category) {
+                $http({
+                    method: "GET",
+                    url: "http://localhost:3000/GetAllPOIs"
+                }).then(function mySuccess(response) {
+                    if(firstCategory)
+                    {
+                        var categories = document.getElementById('select_category_filter');
+                        var set = new Set([]);
+                        //categories
+                        for(var i=0; i<response.data.length;i++)
+                        {
+                            set.add(response.data[i]["category"]);
+                            
+                        }
+                        for (let item of set)
+                        {
+                            var option = document.createElement("option");
+                            option.text = item;
+                            categories.add(option);
+                        }
+                        firstCategory = false;
+                    }
+
+                    pointOfInterestArray = {};
+                    var arrP1 = [];
+                    var arrP2 = [];
+                    var arrP3 = [];
+                    var arrP4 = [];
+                    var dict = {};
+                    var categoryRank = {};
+                    for (var i = 0; i < response.data.length; i++) {
+                        if (response.data[i]["category"].localeCompare("museum") === 0) {
+                            arrP1.push(response.data[i]["pictureName"]);
+                            
+                        }
+                        if (response.data[i]["category"].localeCompare("religious sites") === 0) {
+                            arrP2.push(response.data[i]["pictureName"]);
+                            
+                        }
+                        if (response.data[i]["category"].localeCompare("historical site") === 0) {
+                            arrP3.push(response.data[i]["pictureName"]);
+                            
+                        }
+                        if (response.data[i]["category"].localeCompare("attractions") === 0) {
+                            arrP4.push(response.data[i]["pictureName"]);
+                        
+                        }
+                    }
+                    pointOfInterestArray["museum"] = arrP1;
+                
+                    pointOfInterestArray["religious sites"] = arrP2;
+
+                    pointOfInterestArray["historical site"] = arrP3;
+            
+                    pointOfInterestArray["attractions"] = arrP4;
+
+                    if (isFiltered && category != "") {
+                        filterByCategory(pointOfInterestArray, category);
+                    }
+                    else {
+                        noFilter(pointOfInterestArray);
+                    }
+                    });
+            }
+
+            $scope.getRanks = function (bool, pointOfInterestArray) {
+                type = "score";
+                if (bool || !bool && type.localeCompare("score")===0) {
+                    $http({
+                        method: "GET",
+                        url: "http://localhost:3000/GetAllPOIs"
+                    }).then(function mySuccess(response) {
+                        pointOfInterestArray = {};
+                        var arrP1 = [];
+                        var arrP2 = [];
+                        var arrP3 = [];
+                        var arrP4 = [];
+                        var arrV1 = [];
+                        var arrV2 = [];
+                        var arrV3 = [];
+                        var arrV4 = [];
+                        var dict = {};
+                        var categoryRank = {};
+                        for (var i = 0; i < response.data.length; i++) {
+                            if (response.data[i]["category"].localeCompare("museum") === 0) {
+                                arrP1.push(response.data[i]["pictureName"]);
+                                arrV1.push(response.data[i][type]);
+                            }
+                            if (response.data[i]["category"].localeCompare("religious sites") === 0) {
+                                arrP2.push(response.data[i]["pictureName"]);
+                                arrV2.push(response.data[i][type]);
+                            }
+                            if (response.data[i]["category"].localeCompare("historical site") === 0) {
+                                arrP3.push(response.data[i]["pictureName"]);
+                                arrV3.push(response.data[i][type]);
+                            }
+                            if (response.data[i]["category"].localeCompare("attractions") === 0) {
+                                arrP4.push(response.data[i]["pictureName"]);
+                                arrV4.push(response.data[i][type]);
+                            }
+                        }
+                        pointOfInterestArray["museum"] = arrP1;
+                        categoryRank["museum"] = arrV1;
+                        pointOfInterestArray["religious sites"] = arrP2;
+                        categoryRank["religious sites"] = arrV2;
+                        pointOfInterestArray["historical site"] = arrP3;
+                        categoryRank["historical site"] = arrV3;
+                        pointOfInterestArray["attractions"] = arrP4;
+                        categoryRank["attractions"] = arrV4;
+                        var min = 6;
+                        var index = 0;
+                        var startIndex = 0;
+                        var j = 0;
+                        for (category in pointOfInterestArray) {
+                            startIndex = 0;
+                            while(pointOfInterestArray[category].length > startIndex) {
+                                j = startIndex;
+                                index = j;
+                                min = 6;
+                                for (j = startIndex; j < pointOfInterestArray[category].length; j++) {
+                                    if (categoryRank[category][j] < min) {
+                                        min = categoryRank[category][j];
+                                        index = j;
+                                    }
+
+                                }
+                                var temp = categoryRank[category][startIndex];
+                                categoryRank[category][startIndex] = categoryRank[category][index];
+                                categoryRank[category][index] = temp;
+                                switchPlaces(pointOfInterestArray, category, startIndex, index)
+                                startIndex++;
+                            }
+                        }
+                    
+                        displayPhotos(pointOfInterestArray)
+                    });
+                }
+                
+            }
+            });
             app.controller('singleCtrl', function($scope, $http) {
                 $scope.getDetailed=function(givenId)
                 {
@@ -427,6 +602,12 @@
 
 
         }
+        function switchPlaces(array,category,index1,index2)
+        {
+            var temp = array[category][index1];
+            array[category][index1] = array[category][index2];
+            array[category][index2] = temp;
+        }
         function makeValid()
         {
             
@@ -456,7 +637,7 @@
                 }
             //Creating array of users
             usersArr = new Array();
-            isLogged =false;
+           
             //Creating the fake user
             var fakeUser = new Object();
             fakeUser.username = "a";
@@ -556,11 +737,16 @@
             changeHello();
             GoTo('POI_user');
         }
+        function IsLogged()
+        {
+            return !(typeof current === "undefined");
+        }
         function changeHello()
         {
             var hello = document.getElementById("hello");
             var helloString = "hello ";
-            if (typeof current === 'undefined') 
+            var isloogged = IsLogged();
+            if (!isloogged) 
             { 
                     hello.innerHTML = helloString+ "guest";
             }
@@ -569,6 +755,7 @@
                 hello.innerHTML = helloString + current.username;
             }
         }
+        
         function displaySinglePhoto (id)
         {
             
@@ -634,7 +821,10 @@
                 function extractData(){
                     var x = document.getElementById("text").value;
                     var e = document.getElementById("numbers");
-                    var strUser = e.options[e.selectedIndex].text;        
+                    var strUser = e.options[e.selectedIndex].text; 
+                    var poiName = modalPoi;
+                    console.log("text - "+x+"rank - "+strUser+"id - "+poiName+"username - "+current.username)
+                    angular.element(document.getElementById('myModal')).scope().saveReview(x,strUser,poiName,current.username);
                 }
         
                 
@@ -645,6 +835,7 @@
                     
                     modal.style.display = "block";
                     document.getElementById("modalComment").innerHTML = "Comment on "+element.poi;
+                    modalPoi = element.poi;
                     prevSection = getCurrentSection(element);
                 }
         
@@ -774,9 +965,7 @@
     <li id="filter_by_category_btn"><a>filter by category</a></li>
     <li><select id="select_category_filter">
         <option>No Filter</option>
-        <option>category1</option>
-        <option>category2</option>
-        <option>category3</option>
+      
     </select></li>
     <li id="sort_by_rank_btn"><a>Sort by rank</a></li>  
 </ul>
@@ -817,7 +1006,7 @@
     <div id="singlePhotoDiv" class="userdiv">
             <img height="600" width= "600" id="singlePhotoImage">
         <div id="list_statistics" display ="block">
-            <p class="li_statistics"><h1>{{Name}}</h1></p>
+            <p class="li_statistics"><h1 id="name_poi_des">{{Name}}</h1></p>
             <p class="li_statistics"><h1>{{Viewrs}}</h1></p>
             <p class="li_statistics"><h4 id="descriptionH4"> </h4></p>
             <p class="li_statistics"><h1>{{Rank}}</h1></p>
@@ -1018,6 +1207,13 @@
             bigImage.width = width;
             bigImage.height = height;
             bigImage.id = "big"+id;
+            //The container
+            const container = document.createElement('div');
+            container.id = "container"+id;
+            container.style.position = "relative";
+            container.width = width;
+            container.height = height;
+            
             
             //The small img
             //Add the small img only of logged..
@@ -1045,7 +1241,21 @@
                 
             }
 
-            const smallImage2 = document.createElement('img');
+            
+
+
+            
+
+            container.appendChild(smallImage);
+         
+            
+        
+        container.appendChild(bigImage);
+            element.appendChild(container);
+
+            container.poi = id;
+            
+                const smallImage2 = document.createElement('img');
             smallImage2.src = "source/message.png";
             const smallWidth2 = width/9;
             const smallHeight2 = height/9;
@@ -1055,31 +1265,20 @@
             //smallImage2.style.marginBottom= (height - smallHeight2)+ "px";
             smallImage2.style.right = smallWidth2+"px";
             smallImage2.style.position = "relative";
-          
-
-
-            //The container
-            const container = document.createElement('div');
-            container.id = "container"+id;
-            container.style.position = "relative";
-            container.width = width;
-            container.height = height;
-
-            container.appendChild(smallImage);
-            container.appendChild(bigImage);
             container.appendChild(smallImage2);
-            
-            element.appendChild(container);
-
-            container.poi = id;
-
-            smallImage2.onclick = function()
+                smallImage2.onclick = function()
+                {
+                    modal.style.display = "none";
+                    var small =  document.getElementById("container"+id);
+                    showAbout(small);
+                    GoTo("modalSection");
+                    
+                }
+                var isLogged = IsLogged();
+            if(!isLogged)
             {
-                modal.style.display = "none";
-                var small =  document.getElementById("container"+id);
-                showAbout(small);
-                GoTo("modalSection");
-                
+                smallImage.hidden = true;
+                smallImage2.hidden = true;
             }
             return container;
             
@@ -1323,7 +1522,7 @@
          
         </script>
     </section>
-<section id="POI" display ="none">
+<section id="POI" display ="none" ng-controller = "getPOI">
 
     <style>
         .demo{
@@ -1347,24 +1546,9 @@
     <p class="demo" id="demo"></p>
     <script type="text/javascript">
 
-        function photoDisplay(categoty)
+        function photoDisplay(category)
         {
-            var pointOfInterestArray = {}; 
-            var arr1 = ["https://ichef.bbci.co.uk/news/660/cpsprodpb/83C0/production/_104182733_jerusalem.jpg","https://www.touristisrael.com/wp-content/uploads/Tower-of-David.jpg","https://www.brookings.edu/wp-content/uploads/2017/12/jerusalem_aerial001-e1512487211181.jpg"]
-            var arr2 = ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCkWq2--gI5tRB9VFE5S5TENyuMLm5OoAHGUFDxsKtKFd0PbFO","https://www.brookings.edu/wp-content/uploads/2017/12/jerusalem_aerial001-e1512487211181.jpg"]
-            var arr3 = ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCkWq2--gI5tRB9VFE5S5TENyuMLm5OoAHGUFDxsKtKFd0PbFO","https://www.brookings.edu/wp-content/uploads/2017/12/jerusalem_aerial001-e1512487211181.jpg"]
-            pointOfInterestArray["category1"]=arr1;
-            pointOfInterestArray["category2"]=arr2;
-            pointOfInterestArray["category3"]=arr3;
-
-            if(isFiltered && categoty!="")
-            {
-                filterByCategory(pointOfInterestArray,categoty);
-            }
-            else
-            {
-                noFilter(pointOfInterestArray);
-            }
+            angular.element(document.getElementById("POI")).scope().getCategories(category);
         }
         function noFilter(pointOfInterestArray)
         {
@@ -1378,16 +1562,8 @@
         function orderByRank(pointOfInterestArray)
         {
             
-             
-            if(typeof pointOfInterestArray["category1"] != 'undefined'){
-                var temp = pointOfInterestArray["category1"][0];
-            pointOfInterestArray["category1"][0] = pointOfInterestArray["category1"][1];
-            pointOfInterestArray["category1"][1] = temp;
-            }
-            
-            
-            //Sort By Rank
-            displayPhotos(pointOfInterestArray)
+            var sectionId = "getPOI";
+            angular.element(document.getElementById("POI")).scope().getRanks("score", true, pointOfInterestArray);
         }
         function filterByCategory(pointOfInterestArray,category)
         {
@@ -1435,7 +1611,7 @@
                 for(var j=0; j<value.length;j++)
                     {
                     
-                        var container = addCustomImage(value[j],300,300,selection,"img"+i+","+j);
+                        var container = addCustomImage(value[j],200,200,selection,"img"+i+","+j);
                         container.classList.add("POI_Images");
                         container.style.cssFloat = "left";
                         containers.push(container);
@@ -1724,7 +1900,7 @@
     
 </section>
 <section id="modalSection">
-    <div id="myModal" class="modal-content">
+    <div id="myModal" class="modal-content" ng-controller = "modalCtrl">
         <span class="close">&times;</span>
         <H1 id="modalComment">comment</H1>
         <textarea style="resize:none" id="text" cols="50" rows="5"></textarea>
@@ -1735,7 +1911,7 @@
             <option value="num3">3</option>
             <option value="num4">4</option>
             <option value="num5">5</option>
-        </select>-
+        </select>
         <br>
         <br>
         <br>
@@ -1746,34 +1922,3 @@
         <input class="btn" type="button" id="commit_btn2" value="commit" onclick="extractData()">
     </div>
 </section>
-<!--
-<footer id="footer">
-<style>
-    #footer
-    {
-        position: fixed;
-        bottom: 0;
-        background-color: #cee9ea;
-        width: 100%;
-        text-align: center;
-    }
-</style>
-    <h4>
-        <p>
-            <b>Best POI Online</b>
-            <br/>
-            <i>Contact information:</i>
-
-            Guy Schlesinger
-            <a href="mailto:guysc@post.bgu.ac.il"> guysc@post.bgu.ac.il</a>
-
-            && Jonathan Shaya
-            <a href="mailto:shayay@post.bgu.ac.il">shayay@post.bgu.ac.il</a></p>
-    </h4>
-
-
-</footer>
--->
-<!--
-</html>
---> 
