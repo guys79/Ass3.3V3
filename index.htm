@@ -85,6 +85,63 @@
                 });
             
             });
+        app.controller('restoreCtrl',function($scope,$http)
+        {
+            $scope.getQuestions= function(username)
+            {
+                $http({
+                        method : "GET",
+                        url : "http://localhost:3000/GetUserQuestions?username="+username
+                    }).then(
+                        function mySuccess(response)
+                        {  
+                            //set questions
+                            var question = document.getElementById("select_question");
+                            for(var i=0;i<response.data.length;i++)
+                            {
+                                var option = document.createElement("option");
+                                option.text = response.data[i]["question"];
+                                question.add(option);
+                            }
+                        },
+                        function myFailure(response)
+                        {  
+                        }
+                    )
+            }
+
+            $scope.checkAnswer = function(given_username,given_question,given_answer)
+            {
+                
+                $http({
+                    method: "POST",
+                    url:"http://localhost:3000/restorePassword",
+                    data: {username:given_username, question:given_question,answer:given_answer}
+
+                }).then(function mySuccess(response)
+                {
+                    
+                    var password = response.data["message"];
+                    if(response.data.length == 0)
+                    {
+                        $scope.error = "The answer was not correct";
+                        
+                    }
+                    else
+                    {
+                        $scope.error = "The password is "+password;
+                    }
+                    document.getElementById("errors_restore").hidden = false;
+                },
+                function myFailure(response)
+                {
+                    $scope.error = "The answer was not correct";
+                    document.getElementById("errors_restore").hidden = false;
+                }
+                )
+            }
+
+        });
             app.controller('singleCtrl', function($scope, $http) {
                 $scope.getDetailed=function(givenId)
                 {
@@ -97,6 +154,7 @@
                         method : "GET",
                         url : "http://localhost:3000/DetailedPOI?id="+id
                         }).then(function mySuccess(response) {
+                            $scope.Name = response.data[0]["poiName"];
                             $scope.Viewrs = "Number of Viewers: " + response.data[0]["views"];
                             var titleDes = document.getElementById("descriptionH4");
                             var description = "";
@@ -110,7 +168,7 @@
                             }
                             titleDes.innerHTML = "Description: "+ description;
 
-                            var score = parseInt(response.data[0]["score"]);
+                            var score = parseFloat(response.data[0]["score"]);
                             score = score/5.0;
                             score = score * 100;
                             $scope.Rank = "Rank: "+score+"%";
@@ -352,6 +410,13 @@
                                     {
                                         var arrayOfImages =[] //Change the array to something from the server
                                         displayPhotosPersonal(arrayOfImages);
+                                    }
+                                    else
+                                    {
+                                        if(section_name === "restorePassword")
+                                        {
+                                            resetRestore();
+                                        }
                                     }   
                                 }
                             }
@@ -752,6 +817,7 @@
     <div id="singlePhotoDiv" class="userdiv">
             <img height="600" width= "600" id="singlePhotoImage">
         <div id="list_statistics" display ="block">
+            <p class="li_statistics"><h1>{{Name}}</h1></p>
             <p class="li_statistics"><h1>{{Viewrs}}</h1></p>
             <p class="li_statistics"><h4 id="descriptionH4"> </h4></p>
             <p class="li_statistics"><h1>{{Rank}}</h1></p>
@@ -1556,7 +1622,7 @@
                 }
         </script>
 </section>
-<section id="restorePassword">
+<section id="restorePassword" ng-controller = "restoreCtrl">
 <style>
     #div_restore
     {
@@ -1567,35 +1633,90 @@
 </style>
     <div class="userdiv" id="div_restore">
         <h1 class="sign_up_labels">Restore Password</h1>
-        <label class="sign_up_labels">Choose security question:</label>
+        
+        <label class="sign_up_labels">Enter username</label>
+        <input class="inptUser" type="text"  placeholder="Username" class="sign_up_labels" id="username_input_restore">
+        <label class="sign_up_labels" id="choose_Question_lbl" hidden="true">Choose security question:</label>
         <br/>
-        <select id="select_question" class="inptUser">
-            <option>
-                default question
-            </option>
+        <select id="select_question" class="inptUser" hidden="true">
+           
         </select>
         <br/>
-        <label for="answer_restore" class="sign_up_labels">Answer</label>
+        <label for="answer_restore" class="sign_up_labels" id="answer_restore_lbl" hidden="true">Answer</label>
         <br/>
-        <input class="inptUser" type="text" id="answer_restore" placeholder="Input Answer" class="sign_up_labels">
+        <input class="inptUser" type="text" id="answer_restore" placeholder="Input Answer" class="sign_up_labels" hidden="true">
         <br/>
-        <label id = "errors_login" class="errorMessages"></label>
+        <label id = "errors_restore" class="errorMessages">{{error}}</label>
         <br/>
         <br/>
         <br/>
 
-       <input class="btn" type="submit" id="submit_restore_btn" value="Submit" >
+       <input class="btn" type="submit" id="submit_restore_btn" value="Enter Username" onclick="restore()">
 
 
 
     </div>
     <script type="text/javascript">
     
-        function validateAnswer(givenAnswer , correctAnswer)
+        
+        function restore()
         {
-            return givenAnswer === correctAnswer;
+            var button = document.getElementById("submit_restore_btn");
+            var username = document.getElementById("username_input_restore");
+
+            var questionLbl = document.getElementById("choose_Question_lbl");
+            var question = document.getElementById("select_question");
+            var answerLbl = document.getElementById("answer_restore_lbl");
+            var answer = document.getElementById("answer_restore");
+            var usernameVal = username.value; 
+            if(button.value === "Enter Username")
+            {
+                questionLbl.hidden = false;
+                question.hidden = false;
+                answerLbl.hidden = false;
+                answer.hidden = false;
+                
+                //ask server for questions
+                
+                angular.element(document.getElementById('restorePassword')).scope().getQuestions(usernameVal);
+                
+                button.value="Submit";
+            }
+            else
+            {
+                /* reset
+             
+                */
+                
+                var questionUser = question.options[question.selectedIndex].text;  
+                var answerVal = answer.value;
+                
+
+            
+            
+            angular.element(document.getElementById('restorePassword')).scope().checkAnswer(usernameVal,questionUser,answerVal);
+            
+            
+            }
+            
         }
-    
+        function resetRestore()
+        {
+            var button = document.getElementById("submit_restore_btn");
+            var questionLbl = document.getElementById("choose_Question_lbl");
+            var question = document.getElementById("select_question");
+            var answerLbl = document.getElementById("answer_restore_lbl");
+            var answer = document.getElementById("answer_restore");
+            var username = document.getElementById("username_input_restore");
+            username.value ="";
+            answer.value = "";
+            questionLbl.hidden = true;
+                question.hidden = true;
+                answerLbl.hidden = true;
+                answer.hidden = true;
+                button.value="Enter Username";
+            document.getElementById("errors_restore").hidden = true;
+        }
     </script>
     
   

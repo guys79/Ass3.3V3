@@ -100,9 +100,11 @@ var restorePassword = async function restorePassword(req, res) {
         if (user.answer === req.body.answer) {
             var currUser = await getUser(user.username);
             message = currUser.password;
+            console.log("match "+message);
             res.status(200).json({ message });
         } else {
             message = "wrong answer";
+            console.log(message);
             res.status(403).json({ message });
         }
     }

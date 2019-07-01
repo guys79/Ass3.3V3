@@ -141,6 +141,21 @@ var UpdateFavoritesListOrder = function UpdateFavoritesListOrder(req, res) {
     }
 };
 
+var GetUserQuestions = function GetUserQuestions(req, res) {
+    if (validator.validateInjection(req)) {
+        DButilsAzure.execQuery("SELECT question FROM questions WHERE username='"+req.query.username+"'")
+            .then(function (result) {
+                res.send(result);
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.send(err);
+            })
+    }
+    else {
+        const error = "bad input";
+        res.status(403).json({ error });
+    }
+};
 
-
-module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI};
+module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI, GetUserQuestions};
