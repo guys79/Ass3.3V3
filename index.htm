@@ -87,7 +87,92 @@
                 });
             
             });
-            
+            app.controller('personalCtrl',function($scope,$http)
+                {
+                    $scope.displayPersonalImage = function(username)
+                    {
+                        
+                        
+                        //get saved
+                        $http({
+                            method : "GET",
+                            url : "http://localhost:3000/GetAllFavoritesPOIs?username="+username
+                            
+                            }).then(
+                                function mySuccess(response)
+                                {
+                                    var saved = []
+
+                                    for(var i=0;i<response.data.length;i++)
+                                    {
+                                        for(var j=0;j<response.data.length;j++)
+                                        {
+                                            if(parseInt(response.data[j]["position"]) == i)
+                                            {
+                                                saved.push(response.data[j]["poiName"]);
+                                            }
+                                        }
+                                    }
+                                    $http({
+                                            method: "GET",
+                                            url: "http://localhost:3000/GetAllPOIs"
+                                        }).then(function mySuccess(response) {
+
+                                                var savedWithSrc = [];
+                                                for(var i=0;i<saved.length;i++)
+                                                {
+                                                    for(var j=0;j<response.data.length;j++)
+                                                        {
+                                                            if(response.data[j]["poiName"] === saved[i])
+                                                                savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"]});
+                                                        }
+                                                    
+                                                }
+
+                                            //get Recommended
+                                            $http({
+                                                method : "GET",
+                                                url : "http://localhost:3000/PopularPOIFromTopic?username="+username
+    
+                                                    }).then(
+                                                        function mySuccess(response)
+                                                        {
+                                                            var recommded = []
+
+                                                            recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"]});
+                                                            recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"]});
+                                                            //get Recommended
+                                                            var array = []
+                                                            array.push(savedWithSrc);
+                                                            array.push(recommded);
+                                                            
+                                                            displayPhotosPersonal(array);
+                                                        },
+                                                        function myFailure(response)
+                                                        {
+
+                                                        }
+                                                    )
+                                                
+                                },
+                                function myFailure(response)
+                                {
+
+                                })
+
+
+
+                                        }, function myFailure(response)
+                                        {
+
+                                        })
+                                    
+                        
+                       
+
+                    }
+                }
+            );
         app.controller('modalCtrl',function($scope,$http)
             {
                 $scope.saveReview = function(given_text,num,poiID,given_username)
@@ -103,13 +188,61 @@
 
                     }).then(function mySuccess(response)
                         {
-                            //The counter...
-                            //here
+                            console.log("success");
+                            var id = poiID;
+                            while(id.indexOf(" ")!=-1)
+                            {
+                                id= id.replace(" ","+");
+                            }
+                            $http({
+                                method: "GET",
+                                url : "http://localhost:3000/GetFeedbacksPOI?id="+id
+                        
+                                }).then(function mySuccess(response)
+                                    {
+                                        console.log(response.data);
+                                        //Update rank
+                                        var sum=0;
+                                        for(var i=0;i<response.data.length;i++)
+                                        {
+                                            var single_score = parseFloat(response.data[i]["score"]);
+                                            
+                                            sum = sum +single_score;    
+                                        }
+                                        var Rank=0;
+                                        if(response.data.length!=0)
+                                        {
+                                            var score = sum*1.0;
+                                            score= score /response.data.length;
+                                            
+                                            score = Math.round(score * 100) / 100
+                                            Rank = score;
+                                        }
+                                        $http({
+                                                method: "PUT",
+                                                url : "http://localhost:3000/UpdatePOIRank",
+                                                data:{rank: ""+Rank, poiName:poiID}
+                                                
+                                    
+                                            }).then(function nySuccess(response)
+                                                {
+                                                    console.log({rank: ""+Rank, poiName:poiID})
+                                                }, function myFailure(response)
+                                                {
+
+                                                }
+                                            );
+                                    },
+                                    function myFailure(response)
+                                    {
+                                        console.log("fuck1");
+                                    }
+                                );
                             GoTo(prevSection);
                         },
                         function myFailure(response)
                         {
-
+                            console.log("fuck2");
                         }
                     )
                 }
@@ -184,6 +317,7 @@
                     if(firstCategory)
                     {
                         var categories = document.getElementById('select_category_filter');
+                        var categories_personal = document.getElementById('select_category_filter_personal');
                         var set = new Set([]);
                         //categories
                         for(var i=0; i<response.data.length;i++)
@@ -196,35 +330,39 @@
                             var option = document.createElement("option");
                             option.text = item;
                             categories.add(option);
+                            var option_personal = document.createElement("option");
+                            option_personal.text = item;
+                            categories_personal.add(option_personal);
                         }
                         firstCategory = false;
                     }
 
-                    pointOfInterestArray = {};
+                    var pointOfInterestArray = {};
                     var arrP1 = [];
                     var arrP2 = [];
                     var arrP3 = [];
                     var arrP4 = [];
-                    var dict = {};
-                    var categoryRank = {};
+                  
+                  
                     for (var i = 0; i < response.data.length; i++) {
                         if (response.data[i]["category"].localeCompare("museum") === 0) {
-                            arrP1.push(response.data[i]["pictureName"]);
+                            arrP1.push(response.data[i]);
                             
                         }
                         if (response.data[i]["category"].localeCompare("religious sites") === 0) {
-                            arrP2.push(response.data[i]["pictureName"]);
+                            arrP2.push(response.data[i]);
                             
                         }
                         if (response.data[i]["category"].localeCompare("historical site") === 0) {
-                            arrP3.push(response.data[i]["pictureName"]);
+                            arrP3.push(response.data[i]);
                             
                         }
                         if (response.data[i]["category"].localeCompare("attractions") === 0) {
-                            arrP4.push(response.data[i]["pictureName"]);
+                            arrP4.push(response.data[i]);
                         
                         }
                     }
+                    
                     pointOfInterestArray["museum"] = arrP1;
                 
                     pointOfInterestArray["religious sites"] = arrP2;
@@ -235,6 +373,7 @@
 
                     if (isFiltered && category != "") {
                         filterByCategory(pointOfInterestArray, category);
+                       
                     }
                     else {
                         noFilter(pointOfInterestArray);
@@ -242,14 +381,11 @@
                     });
             }
 
-            $scope.getRanks = function (bool, pointOfInterestArray) {
+            $scope.getRanks = function (bool, pointOfInterestArray2) {
                 type = "score";
                 if (bool || !bool && type.localeCompare("score")===0) {
-                    $http({
-                        method: "GET",
-                        url: "http://localhost:3000/GetAllPOIs"
-                    }).then(function mySuccess(response) {
-                        pointOfInterestArray = {};
+                        
+                        var pointOfInterestArray={};
                         var arrP1 = [];
                         var arrP2 = [];
                         var arrP3 = [];
@@ -258,34 +394,48 @@
                         var arrV2 = [];
                         var arrV3 = [];
                         var arrV4 = [];
-                        var dict = {};
+                        
                         var categoryRank = {};
-                        for (var i = 0; i < response.data.length; i++) {
-                            if (response.data[i]["category"].localeCompare("museum") === 0) {
-                                arrP1.push(response.data[i]["pictureName"]);
-                                arrV1.push(response.data[i][type]);
+                        
+                            if (typeof pointOfInterestArray2["museum"] != 'undefined') {
+                                for(var i=0;i<pointOfInterestArray2["museum"].length;i++)
+                                {
+                                    arrP1.push({"src" : pointOfInterestArray2["museum"][i]["pictureName"], "id" : pointOfInterestArray2["museum"][i]["poiName"]});
+                                    arrV1.push(pointOfInterestArray2["museum"][i][type]);
+                                }
+
+                                pointOfInterestArray["museum"] = arrP1;
+                                categoryRank["museum"] = arrV1;
                             }
-                            if (response.data[i]["category"].localeCompare("religious sites") === 0) {
-                                arrP2.push(response.data[i]["pictureName"]);
-                                arrV2.push(response.data[i][type]);
+                            if (typeof pointOfInterestArray2["religious sites"] != 'undefined') {
+                                for(var i=0;i<pointOfInterestArray2["religious sites"].length;i++)
+                                {
+                                    arrP2.push({"src" : pointOfInterestArray2["religious sites"][i]["pictureName"], "id" : pointOfInterestArray2["religious sites"][i]["poiName"]});
+                                    arrV2.push(pointOfInterestArray2["religious sites"][i][type]);
+                                }
+                                pointOfInterestArray["religious sites"] = arrP2;
+                                categoryRank["religious sites"] = arrV2;
                             }
-                            if (response.data[i]["category"].localeCompare("historical site") === 0) {
-                                arrP3.push(response.data[i]["pictureName"]);
-                                arrV3.push(response.data[i][type]);
+                            if (typeof pointOfInterestArray2["historical site"] != 'undefined') {
+                                for(var i=0;i<pointOfInterestArray2["historical site"].length;i++)
+                                {
+                                    arrP3.push({"src" : pointOfInterestArray2["historical site"][i]["pictureName"], "id" : pointOfInterestArray2["historical site"][i]["poiName"]});
+                                    arrV3.push(pointOfInterestArray2["historical site"][i][type]);
+                                }
+                                pointOfInterestArray["historical site"] = arrP3;
+                                categoryRank["historical site"] = arrV3;
                             }
-                            if (response.data[i]["category"].localeCompare("attractions") === 0) {
-                                arrP4.push(response.data[i]["pictureName"]);
-                                arrV4.push(response.data[i][type]);
+                            if (typeof pointOfInterestArray2["attractions"] != 'undefined') {
+                                for(var i=0;i<pointOfInterestArray2["attractions"].length;i++)
+                                {
+                                    arrP4.push({"src" : pointOfInterestArray2["attractions"][i]["pictureName"], "id" : pointOfInterestArray2["attractions"][i]["poiName"]});
+                                    arrV4.push(pointOfInterestArray2["attractions"][i][type]);
+                                }
+                                pointOfInterestArray["attractions"] = arrP4;
+                                categoryRank["attractions"] = arrV4;
                             }
-                        }
-                        pointOfInterestArray["museum"] = arrP1;
-                        categoryRank["museum"] = arrV1;
-                        pointOfInterestArray["religious sites"] = arrP2;
-                        categoryRank["religious sites"] = arrV2;
-                        pointOfInterestArray["historical site"] = arrP3;
-                        categoryRank["historical site"] = arrV3;
-                        pointOfInterestArray["attractions"] = arrP4;
-                        categoryRank["attractions"] = arrV4;
+                           
+                      
                         var min = 6;
                         var index = 0;
                         var startIndex = 0;
@@ -310,9 +460,10 @@
                                 startIndex++;
                             }
                         }
-                    
+                        console.log("here")
+                        console.log(pointOfInterestArray)
                         displayPhotos(pointOfInterestArray)
-                    });
+                  
                 }
                 
             }
@@ -325,12 +476,18 @@
                     {
                         id= id.replace(" ","+");
                     }
+                 
                     $http({
                         method : "GET",
                         url : "http://localhost:3000/DetailedPOI?id="+id
                         }).then(function mySuccess(response) {
                             $scope.Name = response.data[0]["poiName"];
                             $scope.Viewrs = "Number of Viewers: " + response.data[0]["views"];
+                            
+                            var score = parseFloat(response.data[0]["score"]);
+                            score = (score-1)/4.0;
+                            score = score * 100;
+                            $scope.Rank = "Rank: "+score+"%";
                             var titleDes = document.getElementById("descriptionH4");
                             var description = "";
                             var temp = response.data[0]["description"];
@@ -343,10 +500,7 @@
                             }
                             titleDes.innerHTML = "Description: "+ description;
 
-                            var score = parseFloat(response.data[0]["score"]);
-                            score = score/5.0;
-                            score = score * 100;
-                            $scope.Rank = "Rank: "+score+"%";
+                            
                             var src = response.data[0]["pictureName"];
                             var singleImage = document.getElementById("singlePhotoImage");
                             singleImage.src = src;
@@ -364,19 +518,23 @@
                                         }
                                         else
                                         {
-                                            $scope.Review1 = "Review 1 - by "+response.data[0]["username"] +" rank "+response.data[0]["rank"]
-                                            + "\n"+response.data[0]["text"];
+                                            $scope.Review1 = "Review 1: username - "+response.data[0]["username"] +", rank - "+response.data[0]["score"]
+                                            + ", comment:\n"+response.data[0]["text"];
 
                                         }
                                     }
                                     else
                                     {
-                                        $scope.Review1 = "Review 1 - by "+response.data[0]["username"] +" rank "+response.data[0]["rank"]
-                                            + "\n"+response.data[0]["text"];
-                                            $scope.Review2 = "Review 2 - by "+response.data[1]["username"] +" rank "+response.data[1]["rank"]
-                                            + "\n"+response.data[1]["text"];
+                                        $scope.Review1 = "Review 1: username - "+response.data[0]["username"] +", rank - "+response.data[0]["score"]
+                                            + ", comment:\n"+response.data[0]["text"];
+                                            $scope.Review2 = "Review 2: username - "+response.data[1]["username"] +", rank - "+response.data[1]["score"]
+                                            + ", comment:\n"+response.data[1]["text"];
                                     }
-                           
+                                    
+                               
+
+                            
+                                    
                                     
                               })
                             
@@ -490,9 +648,7 @@
             var select_color = "#336b87";
             var regular_background_color = "#90afc5";
             
-            checkedSort = false;
-            isFiltered = false;
-            document.getElementById("sort_by_rank_btn").style.backgroundColor = "cadetblue";
+           
            // modal.style.display = "none";
             //var welcome = document.getElementById('welcome');
             //welcome.style.display = "none";
@@ -544,6 +700,7 @@
             
 
             document.getElementById("sort_POI").hidden = true;
+            document.getElementById("sort_POI_personal").hidden = true;
             document.body.style.backgroundImage = "url('source/background.jpeg')";
 
             leave();
@@ -576,21 +733,30 @@
                                 if(section_name === "POI")
                                 {
                                     document.getElementById("sort_POI").hidden = false;
-                                    var arrayOfImages ={} //Change the array to something from the server
+                                    resetToolbar();
                                     photoDisplay("");
+
                                 }
                                 else
                                 {
                                     if(section_name === "POI_user")
                                     {
-                                        var arrayOfImages =[] //Change the array to something from the server
-                                        displayPhotosPersonal(arrayOfImages);
+                                        document.getElementById("sort_POI_personal").hidden = false;
+                                        resetToolbar();
+                                        displayPhotosPersonalByUsername(current.username);
                                     }
                                     else
                                     {
                                         if(section_name === "restorePassword")
                                         {
                                             resetRestore();
+                                        }
+                                        else
+                                        {
+                                            if(section_name === "modalSection")
+                                            {
+                                                resetModal();
+                                            }
                                         }
                                     }   
                                 }
@@ -601,6 +767,16 @@
             
 
 
+        }
+        function resetToolbar()
+        {
+         
+            document.getElementById("select_category_filter").selectedIndex = 0;
+            checkedSort = false;
+            isFiltered = false;
+            document.getElementById("sort_by_rank_btn").style.backgroundColor = "cadetblue";
+
+            
         }
         function switchPlaces(array,category,index1,index2)
         {
@@ -683,12 +859,13 @@
                 if(select === "No Filter")
                 {
                 
+                     isFiltered = false;
                      //Change to server output
                      photoDisplay("");
                 }
                 else
                 {
-                
+                    isFiltered = true;
                     photoDisplay(select);
                 }
                 
@@ -712,8 +889,19 @@
             
             for(var i=0;i<images.length;i++)
             {
-            
+                
                 let id = images[i].id
+                if(id.substring(id.length-3) === "poi")
+                {
+                    id = id.substring(0,id.length-3)
+                }
+                else
+                {
+                    if(id.substring(id.length-4) === "pois" || id.substring(id.length-4) === "poir")
+                    {
+                        id = id.substring(0,id.length-4)
+                    }   
+                }
                 if(id != "singlePhotoImage" && id.substring(0,5)!="small" && id!="logo" && id.substring(0,6)!="2small" && id.substring(0,9)!="about_img")
                 {
                     //src[images[i].id] =images[i].src;
@@ -822,8 +1010,9 @@
                     var x = document.getElementById("text").value;
                     var e = document.getElementById("numbers");
                     var strUser = e.options[e.selectedIndex].text; 
+                    console.log("strUsr "+strUser);
                     var poiName = modalPoi;
-                    console.log("text - "+x+"rank - "+strUser+"id - "+poiName+"username - "+current.username)
+              
                     angular.element(document.getElementById('myModal')).scope().saveReview(x,strUser,poiName,current.username);
                 }
         
@@ -834,17 +1023,22 @@
                 function showAbout(element) {
                     
                     modal.style.display = "block";
+                    
+                    if(element.poi.substring(element.poi.length -3)==="poi")
+                    {
+                        element.poi = element.poi.substring(0,element.poi.length-3);
+                    }
+                    else
+                    {
+                        if(element.poi.substring(element.poi.length -4)==="pois" || element.poi.substring(element.poi.length -4)==="poir")
+                                element.poi = element.poi.substring(0,element.poi.length-4);
+                    }
                     document.getElementById("modalComment").innerHTML = "Comment on "+element.poi;
                     modalPoi = element.poi;
                     prevSection = getCurrentSection(element);
                 }
         
-                window.onclick = function(event) {
-                    if (event.target == modal) {
-                        modal.style.display = "none";
-                        GoTo(prevSection);
-                    }
-                }
+           
         
                
         
@@ -949,6 +1143,15 @@
             padding-left: 40%;
             background-color:cadetblue;
         }
+        #select_category_filter_personal
+        {
+            margin-top: 17px;
+        }
+        #sort_POI_personal
+        {
+            padding-left: 40%;
+            background-color:cadetblue;
+        }
 </style>
 
 <ul>
@@ -970,7 +1173,14 @@
     <li id="sort_by_rank_btn"><a>Sort by rank</a></li>  
 </ul>
 
-
+<ul id="sort_POI_personal">
+    <li id="filter_by_category_btn_personal"><a>filter by category</a></li>
+    <li><select id="select_category_filter_personal">
+        <option>No Filter</option>
+      
+    </select></li>
+    <li id="sort_by_rank_btn_personal"><a>Sort by rank</a></li>  
+</ul>
 <section id="singlePhoto" ng-controller = "singleCtrl">
     <style>
         #singlePhoto
@@ -1552,9 +1762,20 @@
         }
         function noFilter(pointOfInterestArray)
         {
-           
+          
             if(!checkedSort)
+            {
+                for(key in pointOfInterestArray)
+                {
+                    var images = [];
+                    for(var i=0;i<pointOfInterestArray[key].length;i++)
+                    {
+                        images.push({"src" : pointOfInterestArray[key][i]["pictureName"], "id" : pointOfInterestArray[key][i]["poiName"]})
+                    }
+                    pointOfInterestArray[key] = images;
+                }
                 displayPhotos(pointOfInterestArray)
+            }
             else
                 orderByRank(pointOfInterestArray)
         }//how to display
@@ -1563,12 +1784,12 @@
         {
             
             var sectionId = "getPOI";
-            angular.element(document.getElementById("POI")).scope().getRanks("score", true, pointOfInterestArray);
+            angular.element(document.getElementById("POI")).scope().getRanks(true, pointOfInterestArray);
         }
         function filterByCategory(pointOfInterestArray,category)
         {
            
-
+            
             for(key in pointOfInterestArray)
             {
                 if(key!=category)
@@ -1576,20 +1797,32 @@
                     delete pointOfInterestArray[key];
                 }
             }
+            
             if(!checkedSort)
+            {
+                for(key in pointOfInterestArray)
+                {
+                    var images = [];
+                    for(var i=0;i<pointOfInterestArray[key].length;i++)
+                    {
+                        images.push({"src" : pointOfInterestArray[key][i]["pictureName"], "id" : pointOfInterestArray[key][i]["poiName"]})
+                    }
+                    pointOfInterestArray[key] = images;
+                }
                 displayPhotos(pointOfInterestArray)
+            }
             else
                 orderByRank(pointOfInterestArray)
         }
         function displayPhotos (pointOfInterestArray)
         {
             
-      
+            
             var x="";
             var i=0;
             for (var key in pointOfInterestArray) {
                 
-                var value = pointOfInterestArray[key];
+                
 
                 x = x +"<div id=\"div_img"+i+"\" class=\"div_poi_general\">";
                 x= x + "<h2>"+key+"</h2>";
@@ -1611,14 +1844,15 @@
                 for(var j=0; j<value.length;j++)
                     {
                     
-                        var container = addCustomImage(value[j],200,200,selection,"img"+i+","+j);
+                        var container = addCustomImage(value[j]["src"],200,200,selection,value[j]["id"]+"poi");
                         container.classList.add("POI_Images");
                         container.style.cssFloat = "left";
                         containers.push(container);
                     }
                     if(value.length>0)
                     {
-                        document.getElementById("containerimg"+i+",0").style.marginLeft = "20%";
+                        
+                        document.getElementById("container"+value[0]["id"]+"poi").style.marginLeft = "20%";
                           
                     }
                 selection.style.textAlign = "center";
@@ -1631,7 +1865,7 @@
     </script>
 
 </section>
-<section id="POI_user" display ="none">
+<section id="POI_user" display ="none" ng-controller = "personalCtrl">
 
         <style>
             #demo{
@@ -1655,16 +1889,14 @@
         <p class="demo" id="demo_user"></p>
         <script type="text/javascript">
 
+            function displayPhotosPersonalByUsername (username)
+            {
+                angular.element(document.getElementById('POI_user')).scope().displayPersonalImage(username);
+            }
             function displayPhotosPersonal (pointOfInterestArray)
             {
-                 
-            var recommended = ["https://ichef.bbci.co.uk/news/660/cpsprodpb/83C0/production/_104182733_jerusalem.jpg","https://www.touristisrael.com/wp-content/uploads/Tower-of-David.jpg"]
-            
-            var saved = ["https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCkWq2--gI5tRB9VFE5S5TENyuMLm5OoAHGUFDxsKtKFd0PbFO","https://www.brookings.edu/wp-content/uploads/2017/12/jerusalem_aerial001-e1512487211181.jpg"]
-            
-            
-            pointOfInterestArray.push(saved);
-            pointOfInterestArray.push(recommended);
+                 //{id,src}
+           
             var x="";
             x = x +"<div id=\"div_imgp"+0+"\" class=\"div_poi_general2\">";// class=\"div_poi_general\">";
             x = x+ "<h1>Saved point of interest </h1>"
@@ -1682,6 +1914,7 @@
             document.getElementById("demo_user").innerHTML = x;
             var containers = [];
             var selection = document.getElementById("div_imgp0");
+            console.log(pointOfInterestArray)
             if(pointOfInterestArray[0].length>=2)
             {
 
@@ -1689,12 +1922,12 @@
 
                 for(var j=0; j<pointOfInterestArray[0].length;j++)
                 {
-                    var container = addCustomImage(pointOfInterestArray[0][j],300,300,selection,"imgp"+0+","+j);
+                    var container = addCustomImage(pointOfInterestArray[0][j]["src"],250,250,selection,pointOfInterestArray[0][j]["id"]+"pois");
                     container.classList.add("personal_image");
                     container.style.cssFloat = "left";
                     containers.push(container);
                 }
-                document.getElementById("containerimgp"+0+",0").style.marginLeft = "20%";
+                document.getElementById("container"+pointOfInterestArray[0][0]["id"]+"pois").style.marginLeft = "20%";
             }
                 
                 selection = document.getElementById("div_imgp1");
@@ -1702,7 +1935,7 @@
                 
                     for(var j=0; j<pointOfInterestArray[1].length;j++)
                     {
-                        var container = addCustomImage(pointOfInterestArray[1][j],300,300,selection,"imgp"+1+","+j);
+                        var container = addCustomImage(pointOfInterestArray[1][j]["src"],250,250,selection,pointOfInterestArray[1][j]["id"]+"poir");
                         container.classList.add("personal_image");
                         container.style.cssFloat = "left";
                         containers.push(container);
@@ -1710,7 +1943,7 @@
                     
                     if(pointOfInterestArray[1].length>0)
                 {
-                    document.getElementById("containerimgp"+1+",0").style.marginLeft = "20%";
+                    document.getElementById("container"+pointOfInterestArray[1][0]["id"]+"poir").style.marginLeft = "20%";
                 }
              
                section_containers.push(containers);
@@ -1903,7 +2136,7 @@
     <div id="myModal" class="modal-content" ng-controller = "modalCtrl">
         <span class="close">&times;</span>
         <H1 id="modalComment">comment</H1>
-        <textarea style="resize:none" id="text" cols="50" rows="5"></textarea>
+        <textarea style="resize:none" id="text" cols="50" rows="5" ></textarea>
         <H1>rating</H1>
         <select id= numbers>
             <option value="num1">1</option>
@@ -1921,4 +2154,14 @@
         <br>
         <input class="btn" type="button" id="commit_btn2" value="commit" onclick="extractData()">
     </div>
+    <script type="text/javascript">
+    function resetModal()
+    {
+        var e = document.getElementById("numbers");
+        e.selectedIndex = 0;
+
+        document.getElementById("text").value = "";
+        
+    }
+    </script>
 </section>

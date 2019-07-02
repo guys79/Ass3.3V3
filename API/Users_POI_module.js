@@ -62,7 +62,7 @@ var GetFeedbackPOI = function GetFeedbackPOI(req, res) {
     {
         newId= newId.replace("+"," ");
     }
-
+    
     if (validator.validateInjection(req)) {
         DButilsAzure.execQuery("SELECT * FROM reviews WHERE poiName='" + newId.substring(1,newId.length-1) + "'")
             .then(function (result) {
@@ -141,6 +141,24 @@ var UpdateFavoritesListOrder = function UpdateFavoritesListOrder(req, res) {
     }
 };
 
+var UpdatePOIRank = function UpdatePOIRank(req, res) {
+    if (validator.validateInjection(req)) {
+        
+        DButilsAzure.execQuery("UPDATE pois SET score='" + req.body.rank + "' WHERE poiName='" + req.body.poiName + "'")
+            .then(function (result) {
+                res.send(result);
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.send(err);
+            })
+    }
+    else {
+        const error = "bad input";
+        res.status(403).json({ error });
+    }
+};
+
 var GetUserQuestions = function GetUserQuestions(req, res) {
     if (validator.validateInjection(req)) {
         DButilsAzure.execQuery("SELECT question FROM questions WHERE username='"+req.query.username+"'")
@@ -158,4 +176,4 @@ var GetUserQuestions = function GetUserQuestions(req, res) {
     }
 };
 
-module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI, GetUserQuestions};
+module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI, GetUserQuestions, UpdatePOIRank};
