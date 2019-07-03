@@ -123,8 +123,10 @@
                                                 {
                                                     for(var j=0;j<response.data.length;j++)
                                                         {
-                                                            if(response.data[j]["poiName"] === saved[i])
+                                                            if(response.data[j]["poiName"] === saved[i] && !checkedSort_personal)
                                                                 savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"]});
+                                                            if(response.data[j]["poiName"] === saved[i] && checkedSort_personal)
+                                                                savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"],"rank":response.data[j]["score"]});
                                                         }
                                                     
                                                 }
@@ -137,15 +139,72 @@
                                                     }).then(
                                                         function mySuccess(response)
                                                         {
+                                                            //here
                                                             var recommded = []
-
-                                                            recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"]});
-                                                            recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"]});
+                                                            if(!checkedSort_personal)
+                                                            {
+                                                                recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"]});
+                                                                recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"]});
+                                                            }
+                                                            else
+                                                            {
+                                                                recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"],"rank":response.data[0]["score"]});
+                                                                recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"],"rank":response.data[1]["score"]});
+                                                            }
                                                             //get Recommended
                                                             var array = []
                                                             array.push(savedWithSrc);
                                                             array.push(recommded);
+                                                            //Filter here
+                                                            //delete the selection and treat the filter as a button to sort by category
+                                                          
+                                                            if(checkedSort_personal)
+                                                            {
+                                                                
+                                                                var pointOfInterestArray = array;
+                                                            //sort here
+                                                            console.log("before")
+                                                            console.log(array)
+                                                            var min = 6;
+                                                            var index = 0;
+                                                            var startIndex = 0;
+                                                            var j = 0;
+                                                            for(var i=0;i<pointOfInterestArray.length;i++)
+                                                            {
+                                                                startIndex = 0;
+                                                                while(pointOfInterestArray[i].length > startIndex) {
+                                                                    j = startIndex;
+                                                                    index = j;
+                                                                    min = 6;
+                                                                    for (j = startIndex; j < pointOfInterestArray[i].length; j++) {
+                                                                        if (parseFloat(pointOfInterestArray[i][j]["rank"]) < min) {
+                                                                            min = parseFloat(pointOfInterestArray[i][j]["rank"])
+                                                                            index = j;
+                                                                        }
+
+                                                                    }
+                                                                    
+                                                                    switchPlacesPersonal(pointOfInterestArray, i, startIndex, index)
+                                                                    startIndex++;
+                                                                }
+                                                            }
+                                                             array = pointOfInterestArray;
+                                                             console.log("after")
+                                                            console.log(array)
+                                                            //convert back
                                                             
+                                                                var newArr = [];
+                                                                for(var i=0;i<array.length;i++)
+                                                                {
+                                                                    var temp = [];
+                                                                    for(var j=0;j<array[i].length;j++)
+                                                                    {
+                                                                        temp.push({"id":array[i][j]["id"],"src":array[i][j]["src"]});
+                                                                    }
+                                                                    newArr.push(temp);
+                                                                }
+                                                                array = newArr;
+                                                            }
                                                             displayPhotosPersonal(array);
                                                         },
                                                         function myFailure(response)
@@ -188,7 +247,7 @@
 
                     }).then(function mySuccess(response)
                         {
-                            console.log("success");
+                            
                             var id = poiID;
                             while(id.indexOf(" ")!=-1)
                             {
@@ -200,7 +259,7 @@
                         
                                 }).then(function mySuccess(response)
                                     {
-                                        console.log(response.data);
+                                        
                                         //Update rank
                                         var sum=0;
                                         for(var i=0;i<response.data.length;i++)
@@ -226,7 +285,7 @@
                                     
                                             }).then(function nySuccess(response)
                                                 {
-                                                    console.log({rank: ""+Rank, poiName:poiID})
+                                                    
                                                 }, function myFailure(response)
                                                 {
 
@@ -235,14 +294,14 @@
                                     },
                                     function myFailure(response)
                                     {
-                                        console.log("fuck1");
+                                        
                                     }
                                 );
                             GoTo(prevSection);
                         },
                         function myFailure(response)
                         {
-                            console.log("fuck2");
+                            
                         }
                     )
                 }
@@ -460,8 +519,6 @@
                                 startIndex++;
                             }
                         }
-                        console.log("here")
-                        console.log(pointOfInterestArray)
                         displayPhotos(pointOfInterestArray)
                   
                 }
@@ -626,7 +683,10 @@
             });
         var src;
         var checkedSort = false;
+        var checkedSort_personal = false;
         var isFiltered = false;
+        var isFiltered_personal = false;
+        var categorySelection = "";
         var modal;
         var span;
         
@@ -708,7 +768,7 @@
              if(section_name === "signup")
                 {
                     ResetSignUp();
-                    //test();
+                 
                 }
                 else
                 {
@@ -718,7 +778,7 @@
                             ResetLogin();
                         else
                             first=false;
-                        //test(); 
+                 
                     }
                     else
                     {
@@ -742,7 +802,7 @@
                                     if(section_name === "POI_user")
                                     {
                                         document.getElementById("sort_POI_personal").hidden = false;
-                                        resetToolbar();
+                                        resetToolbarPersonal();
                                         displayPhotosPersonalByUsername(current.username);
                                     }
                                     else
@@ -775,6 +835,16 @@
             checkedSort = false;
             isFiltered = false;
             document.getElementById("sort_by_rank_btn").style.backgroundColor = "cadetblue";
+
+            
+        }
+        function resetToolbarPersonal()
+        {
+         
+            document.getElementById("select_category_filter_personal").selectedIndex = 0;
+            checkedSort_personal = false;
+            isFiltered_personal = false;
+            document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue";
 
             
         }
@@ -867,6 +937,39 @@
                 {
                     isFiltered = true;
                     photoDisplay(select);
+                }
+                
+            };
+            document.getElementById("sort_by_rank_btn_personal").onclick = function()
+            {
+                checkedSort_personal = !checkedSort_personal;
+                if(!checkedSort_personal)
+                {
+                    document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue" ;
+                }
+                else
+                {
+                    document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "#6495ED";
+                }
+                displayPhotosPersonalByUsername (current.username);
+                
+                
+            };
+            document.getElementById("select_category_filter_personal").onchange = function()
+            {
+
+                var select = document.getElementById("select_category_personal").value;
+                if(select === "No Filter")
+                {
+                    isFiltered = false;
+                     //Change to server output
+                     //photoDisplay("");
+                }
+                else
+                {
+                    isFiltered = true;
+                    categorySelection  = select;
+                    //photoDisplay(select);
                 }
                 
             };
@@ -1006,11 +1109,17 @@
         
                 
             <script>
+                function switchPlacesPersonal(pointOfInterestArray, i, startIndex, index)
+                {
+                    var temp = pointOfInterestArray[i][startIndex];
+                    pointOfInterestArray[i][startIndex] = pointOfInterestArray[i][index];
+                    pointOfInterestArray[i][index] = temp;
+                }
                 function extractData(){
                     var x = document.getElementById("text").value;
                     var e = document.getElementById("numbers");
                     var strUser = e.options[e.selectedIndex].text; 
-                    console.log("strUsr "+strUser);
+                    
                     var poiName = modalPoi;
               
                     angular.element(document.getElementById('myModal')).scope().saveReview(x,strUser,poiName,current.username);
@@ -1914,7 +2023,7 @@
             document.getElementById("demo_user").innerHTML = x;
             var containers = [];
             var selection = document.getElementById("div_imgp0");
-            console.log(pointOfInterestArray)
+            
             if(pointOfInterestArray[0].length>=2)
             {
 
