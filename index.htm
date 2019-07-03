@@ -123,10 +123,26 @@
                                                 {
                                                     for(var j=0;j<response.data.length;j++)
                                                         {
-                                                            if(response.data[j]["poiName"] === saved[i] && !checkedSort_personal)
-                                                                savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"]});
-                                                            if(response.data[j]["poiName"] === saved[i] && checkedSort_personal)
-                                                                savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"],"rank":response.data[j]["score"]});
+                                                            if(checkedSort_personal)
+                                                            {
+                                                                if(response.data[j]["poiName"] === saved[i])
+                                                                  savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"],"rank":response.data[j]["score"]});
+                                                            }
+                                                            else
+                                                            {
+                                                                if(isFiltered_personal)
+                                                                {
+                                                                    if(response.data[j]["poiName"] === saved[i])
+                                                                        savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"],"category":response.data[j]["category"]});
+                                                                }
+                                                                else
+                                                                {
+                                                                    if(response.data[j]["poiName"] === saved[i])
+                                                                        savedWithSrc.push({"id":saved[i],"src":response.data[j]["pictureName"]});
+                                                                }
+                                                            }
+                                                            
+                                                            
                                                         }
                                                     
                                                 }
@@ -143,8 +159,17 @@
                                                             var recommded = []
                                                             if(!checkedSort_personal)
                                                             {
-                                                                recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"]});
-                                                                recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"]});
+                                                                if(isFiltered_personal)
+                                                                {
+                                                                    recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"],"category":response.data[0]["category"]});
+                                                                    recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"],"category":response.data[1]["category"]});
+                                                                }
+                                                                else
+                                                                {
+                                                                    recommded.push({"id":response.data[0]["poiName"],"src":response.data[0]["pictureName"]});
+                                                                    recommded.push({"id":response.data[1]["poiName"],"src":response.data[1]["pictureName"]});
+                                                                }
+                                                                
                                                             }
                                                             else
                                                             {
@@ -158,41 +183,76 @@
                                                             //Filter here
                                                             //delete the selection and treat the filter as a button to sort by category
                                                           
-                                                            if(checkedSort_personal)
+                                                            if(checkedSort_personal || isFiltered_personal)
                                                             {
+                                                                var type = "category";
+                                                                if(checkedSort_personal)
+                                                                {
+                                                                    type = "rank";
                                                                 
-                                                                var pointOfInterestArray = array;
-                                                            //sort here
-                                                            console.log("before")
-                                                            console.log(array)
-                                                            var min = 6;
-                                                            var index = 0;
-                                                            var startIndex = 0;
-                                                            var j = 0;
-                                                            for(var i=0;i<pointOfInterestArray.length;i++)
-                                                            {
-                                                                startIndex = 0;
-                                                                while(pointOfInterestArray[i].length > startIndex) {
-                                                                    j = startIndex;
-                                                                    index = j;
-                                                                    min = 6;
-                                                                    for (j = startIndex; j < pointOfInterestArray[i].length; j++) {
-                                                                        if (parseFloat(pointOfInterestArray[i][j]["rank"]) < min) {
-                                                                            min = parseFloat(pointOfInterestArray[i][j]["rank"])
+                                                               
+                                                                    
+                                                                    var pointOfInterestArray = array;
+                                                                    //sort here
+                                                                
+                                                                    var min = 6;
+                                                                
+                                                                    var index = 0;
+                                                                    var startIndex = 0;
+                                                                    var j = 0;
+                                                                    for(var i=0;i<pointOfInterestArray.length;i++)
+                                                                    {
+                                                                        startIndex = 0;
+                                                                        while(pointOfInterestArray[i].length > startIndex) {
+                                                                            j = startIndex;
                                                                             index = j;
-                                                                        }
+                                                                            min = 6;
+                                                                            for (j = startIndex; j < pointOfInterestArray[i].length; j++) {
+                                                                                if (parseFloat(pointOfInterestArray[i][j][type]) < min) {
+                                                                                    min = parseFloat(pointOfInterestArray[i][j][type])
+                                                                                    index = j;
+                                                                                }
 
+                                                                            }
+                                                                            
+                                                                            switchPlacesPersonal(pointOfInterestArray, i, startIndex, index)
+                                                                            startIndex++;
+                                                                        }
+                                                                    }
+                                                                }
+                                                                if(!checkedSort_personal)
+                                                                {
+                                                                    var pointOfInterestArray = array;
+                                                                    //sort here
+                                                                
+                                                                    var min = "zzzzzzzzzzzzzzzzzzzzzzzzz";
+                                                                
+                                                                    var index = 0;
+                                                                    var startIndex = 0;
+                                                                    var j = 0;
+                                                                    for(var i=0;i<pointOfInterestArray.length;i++)
+                                                                    {
+                                                                        startIndex = 0;
+                                                                        while(pointOfInterestArray[i].length > startIndex) {
+                                                                            j = startIndex;
+                                                                            index = j;
+                                                                            min = "zzzzzzzzzzzzzzzzzzzzzzzzz";
+                                                                            for (j = startIndex; j < pointOfInterestArray[i].length; j++) {
+                                                                                if (pointOfInterestArray[i][j][type].localeCompare(min)<0) {
+                                                                                    min = pointOfInterestArray[i][j][type]
+                                                                                    index = j;
+                                                                                }
+
+                                                                            }
+                                                                            
+                                                                            switchPlacesPersonal(pointOfInterestArray, i, startIndex, index)
+                                                                            startIndex++;
+                                                                        }
                                                                     }
                                                                     
-                                                                    switchPlacesPersonal(pointOfInterestArray, i, startIndex, index)
-                                                                    startIndex++;
                                                                 }
-                                                            }
-                                                             array = pointOfInterestArray;
-                                                             console.log("after")
-                                                            console.log(array)
-                                                            //convert back
-                                                            
+                                                                //convert back
+                                                                array = pointOfInterestArray;
                                                                 var newArr = [];
                                                                 for(var i=0;i<array.length;i++)
                                                                 {
@@ -376,7 +436,7 @@
                     if(firstCategory)
                     {
                         var categories = document.getElementById('select_category_filter');
-                        var categories_personal = document.getElementById('select_category_filter_personal');
+                        
                         var set = new Set([]);
                         //categories
                         for(var i=0; i<response.data.length;i++)
@@ -389,9 +449,7 @@
                             var option = document.createElement("option");
                             option.text = item;
                             categories.add(option);
-                            var option_personal = document.createElement("option");
-                            option_personal.text = item;
-                            categories_personal.add(option_personal);
+                          
                         }
                         firstCategory = false;
                     }
@@ -538,66 +596,80 @@
                         method : "GET",
                         url : "http://localhost:3000/DetailedPOI?id="+id
                         }).then(function mySuccess(response) {
-                            $scope.Name = response.data[0]["poiName"];
-                            $scope.Viewrs = "Number of Viewers: " + response.data[0]["views"];
-                            
-                            var score = parseFloat(response.data[0]["score"]);
-                            score = (score-1)/4.0;
-                            score = score * 100;
-                            $scope.Rank = "Rank: "+score+"%";
-                            var titleDes = document.getElementById("descriptionH4");
-                            var description = "";
-                            var temp = response.data[0]["description"];
-                            var split = temp.split(" ");
-                            for(var i=0;i<split.length;i++)
-                            {
-                                description = description + " "+split[i];
-                                if(i%13==12)
-                                    description = description +"</br>";
-                            }
-                            titleDes.innerHTML = "Description: "+ description;
+                            if(response.data.length>0)
+                                {
+                                $scope.Name = response.data[0]["poiName"];
+                                $scope.Viewrs = "Number of Viewers: " + response.data[0]["views"];
+                                
+                                var score = parseFloat(response.data[0]["score"]);
+                                score = (score-1)/4.0;
+                                score = score * 100;
+                                $scope.Rank = "Rank: "+score+"%";
+                                var titleDes = document.getElementById("descriptionH4");
+                                var description = "";
+                                var temp = response.data[0]["description"];
+                                var split = temp.split(" ");
+                                for(var i=0;i<split.length;i++)
+                                {
+                                    description = description + " "+split[i];
+                                    if(i%13==12)
+                                        description = description +"</br>";
+                                }
+                                titleDes.innerHTML = "Description: "+ description;
 
-                            
-                            var src = response.data[0]["pictureName"];
-                            var singleImage = document.getElementById("singlePhotoImage");
-                            singleImage.src = src;
-                            $http({
-                                method : "GET",
-                                url : "http://localhost:3000/GetFeedbacksPOI?id="+id
-                                }).then(function mySuccess(response) {
-                                    if(response.data.length<2)
-                                    {
-                                        $scope.Review2 = "";
-                                        if(response.data.length==0)
+                                
+                                var src = response.data[0]["pictureName"];
+                                var singleImage = document.getElementById("singlePhotoImage");
+                                singleImage.src = src;
+                                $http({
+                                    method : "GET",
+                                    url : "http://localhost:3000/GetFeedbacksPOI?id="+id
+                                    }).then(function mySuccess(response) {
+                                        if(response.data.length<2)
                                         {
-                                            $scope.Review1 = "No reviews available";
-                                            
+                                            $scope.Review2 = "";
+                                            if(response.data.length==0)
+                                            {
+                                                $scope.Review1 = "No reviews available";
+                                                
+                                            }
+                                            else
+                                            {
+                                                $scope.Review1 = "Review 1: username - "+response.data[0]["username"] +", rank - "+response.data[0]["score"]
+                                                + ", comment:\n"+response.data[0]["text"];
+
+                                            }
                                         }
                                         else
                                         {
                                             $scope.Review1 = "Review 1: username - "+response.data[0]["username"] +", rank - "+response.data[0]["score"]
-                                            + ", comment:\n"+response.data[0]["text"];
-
+                                                + ", comment:\n"+response.data[0]["text"];
+                                                $scope.Review2 = "Review 2: username - "+response.data[1]["username"] +", rank - "+response.data[1]["score"]
+                                                + ", comment:\n"+response.data[1]["text"];
                                         }
-                                    }
-                                    else
-                                    {
-                                        $scope.Review1 = "Review 1: username - "+response.data[0]["username"] +", rank - "+response.data[0]["score"]
-                                            + ", comment:\n"+response.data[0]["text"];
-                                            $scope.Review2 = "Review 2: username - "+response.data[1]["username"] +", rank - "+response.data[1]["score"]
-                                            + ", comment:\n"+response.data[1]["text"];
-                                    }
-                                    
-                               
+                                        
+                                
+                                
+                                
+                                        
+                                        
+                                    })
+                                }
+                                else
+                                {
+                                    $scope.Name = "No Results Were Found For '"+givenId+"'";
+                                    var singleImage = document.getElementById("singlePhotoImage");
+                                    singleImage.src = "source/noRes.png";
+                                    $scope.Viewrs = "";
+                                    $scope.Rank = "";
+                                    var titleDes = document.getElementById("descriptionH4");
+                                    titleDes.innerHTML = "";
+                                    $scope.Review1="";
+                                    $scope.Review2="";
+                                }
 
-                            
-                                    
-                                    
-                              })
-                            
-
-                            
-                        
+                              GoTo('singlePhoto');
+                              document.getElementById("search_menu_txt").value = "";;
                             }, function myError(response) {
                                 
                             
@@ -841,10 +913,12 @@
         function resetToolbarPersonal()
         {
          
-            document.getElementById("select_category_filter_personal").selectedIndex = 0;
+            
             checkedSort_personal = false;
             isFiltered_personal = false;
+            
             document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue";
+            document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue";
 
             
         }
@@ -950,29 +1024,33 @@
                 else
                 {
                     document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "#6495ED";
+                    document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue" ;
+                    isFiltered_personal = false;
+
                 }
                 displayPhotosPersonalByUsername (current.username);
                 
                 
             };
-            document.getElementById("select_category_filter_personal").onchange = function()
+            document.getElementById("filter_by_category_btn_personal").onclick = function()
             {
-
-                var select = document.getElementById("select_category_personal").value;
-                if(select === "No Filter")
+                isFiltered_personal = !isFiltered_personal;
+                if(!isFiltered_personal)
                 {
-                    isFiltered = false;
-                     //Change to server output
-                     //photoDisplay("");
+                    document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue" ;
+
                 }
                 else
                 {
-                    isFiltered = true;
-                    categorySelection  = select;
-                    //photoDisplay(select);
+                    checkedSort_personal = false;
+                    document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue" ;
+                    document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "#6495ED";
                 }
+                displayPhotosPersonalByUsername (current.username);
+                
                 
             };
+           
             resetCountries();
 
             usersArr.push(fakeUser);
@@ -1056,7 +1134,7 @@
             var src = angular.element(document.getElementById(sectionId)).scope().getDetailed(id.substring(3));
             
 
-            GoTo('singlePhoto');
+            
         }
     </script>
 
@@ -1252,10 +1330,7 @@
             padding-left: 40%;
             background-color:cadetblue;
         }
-        #select_category_filter_personal
-        {
-            margin-top: 17px;
-        }
+      
         #sort_POI_personal
         {
             padding-left: 40%;
@@ -1271,7 +1346,7 @@
     <li id="POI_user_menu" onclick="GoTo('POI_user')"><a>Personal Area</a></li>
     <li id="search_menu"><a>search:</a></li>
     <li id="search_menu_right"><input type="text" id="search_menu_txt" text-align ="center"> </li>
-    <li id="commit_btn"> <input class="btn" type="button" id="search_btn" value="search"></li>
+    <li id="commit_btn"> <input class="btn" type="button" id="search_btn" value="search" onclick="search()"></li>
 </ul>
 <ul id="sort_POI">
     <li id="filter_by_category_btn"><a>filter by category</a></li>
@@ -1283,11 +1358,10 @@
 </ul>
 
 <ul id="sort_POI_personal">
-    <li id="filter_by_category_btn_personal"><a>filter by category</a></li>
-    <li><select id="select_category_filter_personal">
-        <option>No Filter</option>
+    <li id="filter_by_category_btn_personal"><a>Sort by category</a></li>
+
       
-    </select></li>
+    
     <li id="sort_by_rank_btn_personal"><a>Sort by rank</a></li>  
 </ul>
 <section id="singlePhoto" ng-controller = "singleCtrl">
@@ -1516,7 +1590,14 @@
         <br/>
     </div>
     <script type="text/javascript">
-     
+        function search()
+        {
+            var id = document.getElementById("search_menu_txt").value;
+            
+            
+            angular.element(document.getElementById("singlePhoto")).scope().getDetailed(id);
+
+        }
         function addCustomImage(srcBig,width,height,element,id)
         {
         
