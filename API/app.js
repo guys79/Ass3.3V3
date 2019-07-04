@@ -27,14 +27,16 @@ app.post("/AddPoint", (req, res) => { POI_M.AddPoint(req, res) });
 
 // Users' POIs
 app.post("/savePoi", (req, res) => {Users_POI_M.savePoi(req, res)});
-app.del("/RemovePOI",(req, res) => {Users_POI_M.RemovePOI(req, res)});
+app.delete("/RemovePOI",(req, res) => {Users_POI_M.RemovePOI(req, res)});
 app.get("/GetFavoritesCount",(req, res) => {Users_POI_M.GetFavoritesCount(req, res)});
 app.get("/GetAllFavoritesPOIs",(req, res) => {Users_POI_M.GetAllFavoritesPOIs(req, res)});
 app.get("/PopularPOIFromTopic", (req, res) => { Users_POI_M.PopularPOIFromTopic(req, res) });
 app.put("/UpdateFavoritesListOrder", (req, res) => { Users_POI_M.UpdateFavoritesListOrder(req, res) });
 app.get("/GetFeedbacksPOI",(req, res) => {Users_POI_M.GetFeedbackPOI(req, res)});//Added by guy
+app.get("/GetFavoritePosition",(req, res) => {Users_POI_M.getFavoritePosition(req, res)});//Added by guy
 app.put("/UpdatePOIRank", (req, res) => { Users_POI_M.UpdatePOIRank(req, res) });//Added by guy
 app.get("/GetUserQuestions", (req, res) => { Users_POI_M.GetUserQuestions(req, res) });//Added by guy
+app.get("/CheckIfFavorite", (req, res) => { Users_POI_M.CheckIfFavorite(req, res) });//Added by guy
 
 
 var port = 3000;

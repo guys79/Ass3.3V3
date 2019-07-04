@@ -87,6 +87,41 @@
                 });
             
             });
+            app.controller('customCtrl', function($scope, $http) {
+                $scope.checkIfFavorite =  function(username,id)
+                {
+                    var idNew = id;
+                        if(id.substring(id.length-3) === "poi")
+                        {
+                            idNew = id.substring(0,id.length-3)
+                        }
+                        else
+                        {
+                            if(id.substring(id.length-4) === "pois" || id.substring(id.length-4) === "poir")
+                            {
+                                idNew = id.substring(0,id.length-4)
+                            }   
+                        }
+                    var newId = idNew;
+                    while(newId.indexOf(" ")!=-1)
+                    {
+                        newId = newId.replace(" ","+");
+                    }
+                 $http({
+              
+                    method : "GET",
+                    url : "http://localhost:3000/CheckIfFavorite?username="+username+"&poiName="+newId
+                    }).then(function mySuccess(response) {
+                        
+                       if(response.data)
+                       {
+                            document.getElementById("small"+id).src = "source/checked.png";
+                       }
+                        
+                    });
+                }
+            
+            });
             app.controller('personalCtrl',function($scope,$http)
                 {
                     $scope.displayPersonalImage = function(username)
@@ -102,7 +137,29 @@
                                 function mySuccess(response)
                                 {
                                     var saved = []
+                                    var set = new Set([]);
 
+                                    var favorites = window.sessionStorage.getItem("favorite");
+                                    if(favorites === null)
+                                        {
+                                            favorites = "";
+                                    
+                                            for(var i=0;i<response.data.length;i++)
+                                            {
+                                                for(var j=0;j<response.data.length;j++)
+                                                {
+                                                    if(parseInt(response.data[j]["position"]) == i)
+                                                    {
+                                                        saved.push(response.data[j]["poiName"]);
+                                                        set.add(response.data[j]["poiName"])
+                                                        favorites = favorites + response.data[j]["poiName"]+"?"+response.data[j]["position"]+",";
+                                                    }
+                                                }
+                                            }
+                                            favorites = favorites.substring(0,favorites.length-1)
+                                        }
+                                else
+                                {
                                     for(var i=0;i<response.data.length;i++)
                                     {
                                         for(var j=0;j<response.data.length;j++)
@@ -110,7 +167,20 @@
                                             if(parseInt(response.data[j]["position"]) == i)
                                             {
                                                 saved.push(response.data[j]["poiName"]);
+                                                set.add(response.data[j]["poiName"])
+                                               
                                             }
+                                        }
+                                    }
+                                 
+                                }
+                                    numberOfFavorites = response.data.length;
+                                    for(var i=0;i<localSave.length;i++)
+                                    {
+                                        if(!set.has(localSave[i]))
+                                        {
+                                            console.log("daldjalajsdl")
+                                            saved.push(localSave[i]);
                                         }
                                     }
                                     $http({
@@ -254,17 +324,22 @@
                                                                 //convert back
                                                                 array = pointOfInterestArray;
                                                                 var newArr = [];
+                                                                //var favorites = "";
                                                                 for(var i=0;i<array.length;i++)
                                                                 {
+                                                                    
                                                                     var temp = [];
                                                                     for(var j=0;j<array[i].length;j++)
                                                                     {
                                                                         temp.push({"id":array[i][j]["id"],"src":array[i][j]["src"]});
+                                                                        
+
                                                                     }
                                                                     newArr.push(temp);
                                                                 }
                                                                 array = newArr;
                                                             }
+                                                            window.sessionStorage.setItem("favorite",favorites);
                                                             displayPhotosPersonal(array);
                                                         },
                                                         function myFailure(response)
@@ -290,7 +365,168 @@
                        
 
                     }
+                    $scope.uploadFavorite= function (username,id,position)
+                    {
+                            var givenId = id;
+                            while(id.indexOf(" ")!=-1)
+                            {
+                                id= id.replace(" ","+");
+                            }
+                        
+                            $http({
+                                method: "GET",
+                                url : "http://localhost:3000/GetFavoritePosition?username="+username+"&poiName="+id
+                        
+                                }).then(function mySuccess(response)
+                                    {
+                                        //Wasn't in favorites
+                                        if(response.data.length == 0)
+                                        {
+                                            $http({
+                                                method: "POST",
+                                                url : "http://localhost:3000/savePoi",
+                                                data: {username:username,poiName:givenId,position:position}
+                                        
+                                                }).then(function mySuccess(response)
+                                                {
+
+                                                })
+                                        }
+                                        else
+                                        {
+                                            //only  update the location
+                                            $http({
+                                            method: "PUT",
+                                                url : "http://localhost:3000/UpdateFavoritesListOrder",
+                                                data: {username:username,poiname:givenId,position:position}
+                                            }).then(function mySuccess(response)
+                                            {
+
+                                            });
+                                        }
+                                    }
+                                )
+
+                    }
+                    $scope.removeFavorite = function(username,poiId)
+                    {
+                        var id = poiId;
+                        var idNew = id;
+                        if(id.substring(id.length-3) === "poi")
+                        {
+                            idNew = id.substring(0,id.length-3)
+                        }
+                        else
+                        {
+                            if(id.substring(id.length-4) === "pois" || id.substring(id.length-4) === "poir")
+                            {
+                                idNew = id.substring(0,id.length-4)
+                            }   
+                        }
+                        id = idNew;
+                            while(id.indexOf(" ")!=-1)
+                            {
+                                id= id.replace(" ","+");
+                            }
+                        $http({
+                                method: "GET",
+                                url : "http://localhost:3000/CheckIfFavorite?username="+username+"&poiName="+id
+                        
+                                }).then(function mySuccess(response)
+                                {
+                                    console.log(response.data)
+                                    console.log(typeof response.data)
+                                        if(response.data)
+                                        {
+                                            $http({
+                                                method: "DELETE",
+                                                url : "http://localhost:3000/RemovePOI?username="+username+"&poiName="+id
+                                                
+                                                }).then(function mySuccess(response)
+                                                {
+                                                    $http({
+                                                        method : "GET",
+                                                        url : "http://localhost:3000/GetAllFavoritesPOIs?username="+username
+                                                        
+                                                        }).then(function mySuccess(response)
+                                                        {
+                                                            var missing = true;
+                                                            var pos =-1;
+                                                            for(var i=0;i<response.data.length&&missing;i++)
+                                                            {
+                                                                missing = false;
+                                                                pos = i;
+                                                                for(var j=0;j<response.data.length;j++)
+                                                                {
+                                                                    
+                                                                    if(parseInt(response.data[j]["position"]) == i)
+                                                                    {
+                                                                        missing =true;
+                                                                        
+                                                                    }
+                                                                }
+                                                            }
+                                                            console.log("here!")
+                                                            if(!missing)
+                                                            {
+                                                                console.log("Missing +length = "+response.data.length )
+                                                                //Need to update pos
+                                                                for(var i=pos+1;i<response.data.length+1;i++)
+                                                                {
+                                                                    for(var j=0;j<response.data.length;j++)
+                                                                    {
+                                                                        console.log(parseInt(response.data[j]["position"])+" pos")
+                                                                        if(parseInt(response.data[j]["position"]) == i)
+                                                                        {
+                                                                                console.log(response.data[j]["poiName"]+" need to be "+(i-1))
+                                                                                console.log("update - username - "+current.username +" poiName "+response.data[j]["poiName"]+" position "+""+(i-1))
+                                                                            $http({
+                                                                            method: "PUT",
+                                                                                url : "http://localhost:3000/UpdateFavoritesListOrder",
+                                                                                data: {username:current.username,poiname:response.data[j]["poiName"],position:""+(i-1)}
+                                                                            }).then(function mySuccess(response)
+                                                                            {
+
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                                
+                                                        });
+                                                    });
+                                                }
+                                               
+                                        
+                                        var favorites = window.sessionStorage.getItem("favorite");
+                                        localSave.remove(poiId)
+                                        console.log("favorites " +favorites)
+                                        var index = favorites.indexOf(poiId+"?");
+                                        if(index ==0)
+                                            {
+                                                var index2 = favorites.indexOf(",")
+                                                if(index==-1)//only one
+                                                {
+                                                    favorites = "";
+                                                }
+                                                else
+                                                {
+                                                    favorites = favorites.substring(index2+1);
+                                                }
+                                            }
+                                        else
+                                        {
+                                            var temp = favorites.substring(index);
+                                            var index3 =temp.indexOf(",");
+                                            favorites = favorites.substring(0,index-1)+ temp.substring(index3+1);
+                                        }
+                                        console.log("favorites " +favorites)
+                                        window.sessionStorage.setItem("favorite",favorites);
+                                });   
+                        
+                    }
                 }
+                
             );
         app.controller('modalCtrl',function($scope,$http)
             {
@@ -919,7 +1155,7 @@
             
             document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue";
             document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue";
-
+            document.getElementById("upload_personal").style.backgroundColor = "cadetblue";
             
         }
         function switchPlaces(array,category,index1,index2)
@@ -932,6 +1168,9 @@
         {
             
             angular.element(document.getElementById('signup')).scope().submit();
+            
+            
+            
         }
         function getCurrentSection(element)
         {
@@ -943,7 +1182,7 @@
         }
         function Initialize()
         {
-
+            window.sessionStorage.removeItem("favorite")
 
        
 
@@ -1312,6 +1551,7 @@
             text-align: center;
             
         }
+  
         #commit_btn
         {
             
@@ -1336,6 +1576,7 @@
             padding-left: 40%;
             background-color:cadetblue;
         }
+       
 </style>
 
 <ul>
@@ -1359,11 +1600,90 @@
 
 <ul id="sort_POI_personal">
     <li id="filter_by_category_btn_personal"><a>Sort by category</a></li>
-
-      
-    
     <li id="sort_by_rank_btn_personal"><a>Sort by rank</a></li>  
+    <li id="upload_personal"><input class="btn" type="button" id="upload_btn" value="Upload 2 Server"  onclick = "uploadToServer()"></li>  
 </ul>
+<script type="text/javascript">
+var localSave =[]
+var numberOfFavorites = -1;
+function uploadToServer()
+{
+    
+    var favorites = window.sessionStorage.getItem("favorite");
+    var split = favorites.split(",");
+    console.log(split)
+    for(var i=0; i<split.length;i++)
+    {
+        var index = split[i].indexOf("?");
+        angular.element(document.getElementById('POI_user')).scope().uploadFavorite(current.username,split[i].substring(0,index),split[i].substring(index+1));
+    }
+    
+
+    
+
+}
+function uploadLocal(id)
+{
+    //update number of favorites if -1
+    var position = numberOfFavorites;
+    numberOfFavorites++;
+    var favorites = window.sessionStorage.getItem("favorite")
+    
+    var idNew = id;
+        if(id.substring(id.length-3) === "poi")
+        {
+            idNew = id.substring(0,id.length-3)
+        }
+        else
+        {
+        if(id.substring(id.length-4) === "pois" || id.substring(id.length-4) === "poir")
+            {
+                idNew = id.substring(0,id.length-4)
+            }   
+        }
+        if(favorites.indexOf(idNew+"?"+position)==-1)
+            favorites = favorites+","+idNew+"?"+position;
+    localSave.push(idNew)
+    
+    window.sessionStorage.setItem("favorite",favorites)
+    
+}
+function switchValues(id1,position1,id2,position2)
+{
+    var favorites = window.sessionStorage.getItem("favorite")
+
+    var index1 = favorites.indexOf(id1+"?"+position1)
+    var index2 = favorites.indexOf(id2+"?"+position2)
+    var minId = '';
+    var minPosition = -1;
+    var minIndex = -1;
+    var maxId = '';
+    var maxPosition = -1;
+    var maxIndex = -1;
+    if(index1>index2)
+    {
+            minId=id2;
+            minPosition = position2;
+            minIndex = index2;
+            maxId=id1;
+            maxPosition = position1;
+            maxIndex = index1;
+    }
+    else
+    {
+            minId=id1;
+            minPosition = position1;
+            minIndex = index1;
+            maxId=id2;
+            maxPosition = position2;
+            maxIndex = index2;
+    }
+    var expMax = maxId+"?"+maxPosition;
+    var expMin = minId+"?"+minPosition;
+    favorites = favorites.substring(0,minIndex)+expMax+favorites.substring(minIndex+expMin.length,maxIndex)+expMin+favorites.substring(maxIndex+expMax.length)
+    window.sessionStorage.setItem("favorite",favorites)
+}
+</script>
 <section id="singlePhoto" ng-controller = "singleCtrl">
     <style>
         #singlePhoto
@@ -1619,6 +1939,8 @@
             //Add the small img only of logged..
             const smallImage = document.createElement('img');
             smallImage.src = "source/unchecked.png";
+            if(IsLogged())
+                angular.element(document.getElementById('about')).scope().checkIfFavorite(current.username,id);
             const smallWidth = width/9;
             const smallHeight = height/9;
             smallImage.width = smallWidth;
@@ -1632,12 +1954,17 @@
                 var small =  document.getElementById("small"+id);
                 if(small.src.includes( "source/unchecked.png"))
                 {
+                    //add
+                    uploadLocal(id);
                     smallImage.src = "source/checked.png";
                 }
                 else
                 {
+                    //remove
                     smallImage.src = "source/unchecked.png";
+                    angular.element(document.getElementById('POI_user')).scope().removeFavorite(current.username,id)
                 }
+                
                 
             }
 
@@ -2082,6 +2409,8 @@
             function displayPhotosPersonalByUsername (username)
             {
                 angular.element(document.getElementById('POI_user')).scope().displayPersonalImage(username);
+                
+                
             }
             function displayPhotosPersonal (pointOfInterestArray)
             {
@@ -2142,7 +2471,7 @@
         </script>
     
     </section>
-<section id="about" display="none">
+<section id="about" display="none" ng-controller = "customCtrl">
     <style>
         #about_img1
         {

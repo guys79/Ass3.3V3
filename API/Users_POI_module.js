@@ -24,7 +24,15 @@ var savePoi = function savePoi(req, res) {
 
 var RemovePOI = function RemovePOI(req, res) {
     if (validator.validateInjection(req)) {
-        DButilsAzure.execQuery("DELETE FROM poisOfUser WHERE username='" + req.body.username + "' AND poiName='" + req.body.poiname + "'")
+        var id =JSON.stringify(req.query.poiName);
+        var newId = id;
+        while(newId.indexOf("+")!=-1)
+        {
+            newId= newId.replace("+"," ");
+        }
+        newId = newId.substring(1,newId.length-1);
+        console.log("username = "+req.query.username +" poiName = "+newId+" ????????????????????????????")
+        DButilsAzure.execQuery("DELETE FROM poisOfUser WHERE username='" + req.query.username + "' AND poiName='" + newId + "'")
             .then(function (result) {
                 res.send(result);
             })
@@ -140,7 +148,30 @@ var UpdateFavoritesListOrder = function UpdateFavoritesListOrder(req, res) {
         res.status(403).json({ error });
     }
 };
+var getFavoritePosition = function getFavoritePosition(req, res) {
+    if (validator.validateInjection(req)) {
+        var id =JSON.stringify(req.query.poiName);
+        var newId = id;
+        while(newId.indexOf("+")!=-1)
+        {
+            newId= newId.replace("+"," ");
+        }
+        newId = newId.substring(1,newId.length-1);
 
+        DButilsAzure.execQuery("SELECT position FROM poisOfUser WHERE username='" + req.query.username + "' AND poiName='" + newId + "'")
+            .then(function (result) {
+                res.send(result);
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.send(err);
+            })
+    }
+    else {
+        const error = "bad input";
+        res.status(403).json({ error });
+    }
+};
 var UpdatePOIRank = function UpdatePOIRank(req, res) {
     if (validator.validateInjection(req)) {
         
@@ -176,4 +207,40 @@ var GetUserQuestions = function GetUserQuestions(req, res) {
     }
 };
 
-module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI, GetUserQuestions, UpdatePOIRank};
+var CheckIfFavorite = function CheckIfFavorite(req, res) {
+    if (validator.validateInjection(req)) {
+        var id =JSON.stringify(req.query.poiName);
+        var newId = id;
+
+        while(newId.indexOf("+")!=-1)
+        {
+            newId= newId.replace("+"," ");
+        }
+        newId = newId.substring(1,newId.length-1);
+        console.log(newId +" new id " +id)
+        DButilsAzure.execQuery("SELECT * FROM poisOfUser WHERE username='"+req.query.username+"' AND poiName='"+newId+"'")
+            .then(function (result) {
+                if(result.length>0)
+                {
+                    res.send(true);
+                    
+                }
+                else
+                {
+                    res.send(false);
+                }
+                
+                
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.send(err);
+            })
+    }
+    else {
+        const error = "bad input";
+        res.status(403).json({ error });
+    }
+};
+
+module.exports = { savePoi, RemovePOI, GetFavoritesCount, GetAllFavoritesPOIs, PopularPOIFromTopic, UpdateFavoritesListOrder, GetFeedbackPOI, GetUserQuestions, UpdatePOIRank, CheckIfFavorite,getFavoritePosition};
