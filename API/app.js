@@ -21,6 +21,7 @@ app.post("/restorePassword", (req, res) => {Users_M.restorePassword(req, res)});
 app.post("/poiFeedback", (req, res) => {POI_M.poiFeedback(req, res)});
 app.get("/GetRandomPopularPOI", (req, res) => {POI_M.GetRandomPopularPOI(req, res)});
 app.get("/DetailedPOI", (req, res) => {POI_M.DetailedPOI(req, res)});
+app.put("/AddViewPOI", (req, res) => {POI_M.AddViewPOI(req, res)});//added by guy
 app.get("/GetAllPOIs", (req, res) => {POI_M.GetAllPOIs(req, res)});
 app.post("/getPOI", (req, res) => { POI_M.getPOI(req, res) });
 app.post("/AddPoint", (req, res) => { POI_M.AddPoint(req, res) });

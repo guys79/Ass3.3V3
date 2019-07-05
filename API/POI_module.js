@@ -59,7 +59,7 @@ var DetailedPOI = function DetailedPOI(req, res) {
     {
         newId= newId.replace("+"," ");
     }
-    console.log(newId);
+    
     DButilsAzure.execQuery('SELECT * FROM pois WHERE poiName=' + "'" +  newId.substring(1,newId.length-1) + "'")
         .then(function (result) {
             res.send(result);
@@ -105,4 +105,39 @@ var AddPoint = function AddPoint(req, res) {
     }
 };
 
-module.exports = { poiFeedback, GetRandomPopularPOI, getPOI, DetailedPOI, GetAllPOIs, AddPoint };
+var AddViewPOI = function AddViewPOI(req, res) {
+    if(validator.validateInjection(req)) {
+        var newId = req.body.poiName;
+        while(newId.indexOf("+")!=-1)
+        {
+            newId= newId.replace("+"," ");
+        }
+        
+        console.log(newId);
+        //
+        DButilsAzure.execQuery("SELECT views FROM pois WHERE poiName='" + newId + "'")
+            .then(function (result) {
+                var views = parseInt(result[0]["views"]);
+                views++;
+                DButilsAzure.execQuery("UPDATE pois SET views='" + views + "' WHERE poiName='" + newId + "'")
+                .then(function (result) {
+
+                    res.send(result);
+                })
+                .catch(function (err) {
+                    console.log(err);
+                    res.send(err);
+                })
+                
+            })
+            .catch(function (err) {
+                console.log(err);
+                res.send(err);
+            })
+    }
+    else {
+        const error = "bad input";
+        res.status(403).json({ error });
+    }
+};
+module.exports = { poiFeedback, GetRandomPopularPOI, getPOI, DetailedPOI, GetAllPOIs, AddPoint ,AddViewPOI};

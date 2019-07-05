@@ -56,7 +56,7 @@
     <script type="text/javascript">
 
         window.addEventListener("load",Initialize);
-        var usersArr;
+     
         var current;
         var firstCategory = true;
         var modalPoi = "";
@@ -66,6 +66,56 @@
         var loginPhotos = [];
         const app = angular.module('myApp', ['ngRoute']);
         app.controller('loginCtrl', function($scope, $http) {
+            $scope.autoLogin = function (token)
+            {
+                $http({
+                        method:"POST",
+                        url : "http://localhost:3000/private",
+                        headers: {"x-auth-token":token}
+                }).then(function mtSuccess(response)
+                {
+                    if(response.data["result"] === "valid token" )
+                    {
+                        
+                        current = new Object();
+                        current.username = response.data["username"]
+                        whenLoggin();
+                    }
+                }
+                )
+            }
+            $scope.login = function(username,password)
+            {
+               
+                    $http({
+                        method:"POST",
+                        url : "http://localhost:3000/login",
+                        data: {username:username, password:password}
+
+                    }).then(function (response)
+                    {
+
+                        window.sessionStorage.setItem("token",response.data["token"]);
+                        window.sessionStorage.removeItem("favorite",response.data["token"]);
+                        var errorLabel = document.getElementById('errors_login');
+                        errorLabel.innerText = "";
+                        current = new Object();
+                        current.username = username;
+
+                        whenLoggin();
+                    },
+                    function (response)
+                    {
+                        
+                        var errorMessage = "Wrong username or password, please try again";
+                        var errorLabel = document.getElementById('errors_login');  
+                        errorLabel.innerText = errorMessage;  
+                    }
+                    
+                    );
+            
+                
+            }
             $http({
                 method : "GET",
                 url : "http://localhost:3000/GetRandomPopularPOI"
@@ -88,7 +138,7 @@
             
             });
             app.controller('customCtrl', function($scope, $http) {
-                $scope.checkIfFavorite =  function(username,id)
+                $scope.checkIfFavorite =  function(username,id,image)
                 {
                     var idNew = id;
                         if(id.substring(id.length-3) === "poi")
@@ -107,23 +157,47 @@
                     {
                         newId = newId.replace(" ","+");
                     }
-                 $http({
-              
-                    method : "GET",
-                    url : "http://localhost:3000/CheckIfFavorite?username="+username+"&poiName="+newId
-                    }).then(function mySuccess(response) {
-                        
-                       if(response.data)
-                       {
-                            document.getElementById("small"+id).src = "source/checked.png";
-                       }
-                        
-                    });
+                    if(checkIfFavoriteLocal(idNew))
+                    {
+                        image.src = "source/checked.png";
+                    }
+                    else
+                    {
+                        $http({
+                    
+                            method : "GET",
+                            url : "http://localhost:3000/CheckIfFavorite?username="+username+"&poiName="+newId
+                            }).then(function mySuccess(response) {
+                                
+                            if(response.data)
+                            {
+                                    image.src = "source/checked.png";
+                            }
+                                
+                            });
+                    }
                 }
             
             });
             app.controller('personalCtrl',function($scope,$http)
                 {
+                    $scope.getNumberOfFavorites = function(username)
+                    {
+                        $http({
+                            method: "GET",
+                            url:"http://localhost:3000/GetFavoritesCount?username="+username
+                        }).then(function mySuccess(response)
+                        {
+                            numberOfFavorites = parseInt(response.data[0][""])
+                            
+                        },function mtFailure(response)
+                        {
+
+                        }
+                        );
+                        
+                        
+                    }
                     $scope.displayPersonalImage = function(username)
                     {
                         
@@ -137,8 +211,7 @@
                                 function mySuccess(response)
                                 {
                                     var saved = []
-                                    var set = new Set([]);
-
+                                  
                                     var favorites = window.sessionStorage.getItem("favorite");
                                     if(favorites === null)
                                         {
@@ -151,38 +224,27 @@
                                                     if(parseInt(response.data[j]["position"]) == i)
                                                     {
                                                         saved.push(response.data[j]["poiName"]);
-                                                        set.add(response.data[j]["poiName"])
+                                                        
                                                         favorites = favorites + response.data[j]["poiName"]+"?"+response.data[j]["position"]+",";
                                                     }
                                                 }
                                             }
                                             favorites = favorites.substring(0,favorites.length-1)
                                         }
-                                else
-                                {
-                                    for(var i=0;i<response.data.length;i++)
+                                    else
                                     {
-                                        for(var j=0;j<response.data.length;j++)
+                                        numberOfFavorites = response.data.length;
+                                        var localFavoriteNames = getLocalFavorites();
+                                        for(var i=0;i<localFavoriteNames.length;i++)
                                         {
-                                            if(parseInt(response.data[j]["position"]) == i)
-                                            {
-                                                saved.push(response.data[j]["poiName"]);
-                                                set.add(response.data[j]["poiName"])
-                                               
-                                            }
+
+                                            saved.push(getIdByPositionLocal(i));
+
                                         }
+                                        
+                                      
                                     }
-                                 
-                                }
-                                    numberOfFavorites = response.data.length;
-                                    for(var i=0;i<localSave.length;i++)
-                                    {
-                                        if(!set.has(localSave[i]))
-                                        {
-                                            console.log("daldjalajsdl")
-                                            saved.push(localSave[i]);
-                                        }
-                                    }
+                                    
                                     $http({
                                             method: "GET",
                                             url: "http://localhost:3000/GetAllPOIs"
@@ -226,6 +288,7 @@
                                                         function mySuccess(response)
                                                         {
                                                             //here
+                                                            console.log("username!!!! "+username)
                                                             var recommded = []
                                                             if(!checkedSort_personal)
                                                             {
@@ -389,7 +452,9 @@
                                         
                                                 }).then(function mySuccess(response)
                                                 {
-
+                                                    
+                                                        document.getElementById("upload_btn").value = "Uploaded successfully!"
+                                                        
                                                 })
                                         }
                                         else
@@ -401,7 +466,8 @@
                                                 data: {username:username,poiname:givenId,position:position}
                                             }).then(function mySuccess(response)
                                             {
-
+                                                document.getElementById("upload_btn").value = "Uploaded successfully!"
+                                                
                                             });
                                         }
                                     }
@@ -434,8 +500,7 @@
                         
                                 }).then(function mySuccess(response)
                                 {
-                                    console.log(response.data)
-                                    console.log(typeof response.data)
+                                    var favorites = window.sessionStorage.getItem("favorite");
                                         if(response.data)
                                         {
                                             $http({
@@ -466,62 +531,54 @@
                                                                     }
                                                                 }
                                                             }
-                                                            console.log("here!")
+                                                 
                                                             if(!missing)
                                                             {
-                                                                console.log("Missing +length = "+response.data.length )
+                                                             
                                                                 //Need to update pos
                                                                 for(var i=pos+1;i<response.data.length+1;i++)
                                                                 {
                                                                     for(var j=0;j<response.data.length;j++)
                                                                     {
-                                                                        console.log(parseInt(response.data[j]["position"])+" pos")
+                                                                      
                                                                         if(parseInt(response.data[j]["position"]) == i)
                                                                         {
-                                                                                console.log(response.data[j]["poiName"]+" need to be "+(i-1))
-                                                                                console.log("update - username - "+current.username +" poiName "+response.data[j]["poiName"]+" position "+""+(i-1))
+                                                                           
+                                                                            favorites = favorites.replace(response.data[j]["poiName"]+"?"+i,response.data[j]["poiName"]+"?"+(i-1));
+                                                                       
+                                                                        }
+                                                                    }
+                                                                    for(var j=0;j<response.data.length;j++)
+                                                                    {
+                                                                        
+                                                                        if(parseInt(response.data[j]["position"]) == i)
+                                                                        {
+                                                                                
                                                                             $http({
                                                                             method: "PUT",
                                                                                 url : "http://localhost:3000/UpdateFavoritesListOrder",
                                                                                 data: {username:current.username,poiname:response.data[j]["poiName"],position:""+(i-1)}
                                                                             }).then(function mySuccess(response)
                                                                             {
-
+                                                                              
                                                                             });
+                                                                            
                                                                         }
                                                                     }
                                                                 }
-                                                            }
                                                                 
+                                                            }
+                                                            removeFromLocal(favorites,idNew);
                                                         });
                                                     });
                                                 }
                                                
                                         
-                                        var favorites = window.sessionStorage.getItem("favorite");
-                                        localSave.remove(poiId)
-                                        console.log("favorites " +favorites)
-                                        var index = favorites.indexOf(poiId+"?");
-                                        if(index ==0)
-                                            {
-                                                var index2 = favorites.indexOf(",")
-                                                if(index==-1)//only one
-                                                {
-                                                    favorites = "";
-                                                }
-                                                else
-                                                {
-                                                    favorites = favorites.substring(index2+1);
-                                                }
-                                            }
                                         else
                                         {
-                                            var temp = favorites.substring(index);
-                                            var index3 =temp.indexOf(",");
-                                            favorites = favorites.substring(0,index-1)+ temp.substring(index3+1);
-                                        }
-                                        console.log("favorites " +favorites)
-                                        window.sessionStorage.setItem("favorite",favorites);
+                                          removeFromLocal(favorites,idNew)
+                                        } 
+                                                
                                 });   
                         
                     }
@@ -905,7 +962,22 @@
                                 }
 
                               GoTo('singlePhoto');
-                              document.getElementById("search_menu_txt").value = "";;
+                              document.getElementById("search_menu_txt").value = "";
+
+                              $http({
+                                  method: "PUT",
+                                  url:"http://localhost:3000/AddViewPOI",
+                                  data: {poiName:id}
+
+                              }).then(function mySuccess(response)
+                              {
+                                  console.log("VIEW ADDED")
+
+                              }, function myFialure(response)
+                              {
+
+                              })
+
                             }, function myError(response) {
                                 
                             
@@ -997,7 +1069,9 @@
         var categorySelection = "";
         var modal;
         var span;
-        
+        var inTheMiddleOfSwitch = false;
+        var sub1;
+        var sub2;
         var prevSection;
         var section_containers = [];
         var countries = "<Countries>"+"<Country>"+"<ID>1</ID>"+"<Name>Australia</Name>"+"</Country>"+"<Country>"+
@@ -1009,7 +1083,38 @@
         "</Country>"+ "<Country>"+"<ID>11</ID>"+"<Name>Switzerland</Name>"+ "</Country>"+"<Country>"+"<ID>12</ID>"+
         "<Name>USA</Name>"+"</Country>"+"</Countries>";
         
+        function sortAlone()
+        {
+            if(!isFiltered_personal&&!checkedSort_personal)
+            {
+                inTheMiddleOfSwitch = !inTheMiddleOfSwitch ;
+                if(inTheMiddleOfSwitch) 
+                {
+                    document.getElementById("sort_by_yourself_btn_personal").style.backgroundColor = "#6495ED";
+         
+                    
+                }
+                else
+                {
+                    document.getElementById("sort_by_yourself_btn_personal").style.backgroundColor = "cadetblue" ;
+                    var help;//equals to undefined
+                    
+                    if(typeof sub1 !='undefined')
+                    {
+                        sub1.style.borderStyle = "none"
+                        sub1 = help;
 
+                        
+                    }
+                    if(typeof sub2 !='undefined')
+                    {
+                        sub2.style.borderStyle = "none"
+                        sub2 = help;
+                        
+                    }
+                }
+            }
+        }
         function GoTo(section_name)
         {   
             var menu_extension = "_menu";
@@ -1152,11 +1257,131 @@
             
             checkedSort_personal = false;
             isFiltered_personal = false;
-            
+            document.getElementById("upload_btn").value = "Upload 2 Server";
             document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue";
             document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue";
-            document.getElementById("upload_personal").style.backgroundColor = "cadetblue";
+            document.getElementById("sort_by_yourself_btn_personal").style.backgroundColor = "cadetblue";
+            document.getElementById("sort_by_rank_btn_personal").disabled= false;
+            document.getElementById("filter_by_category_btn_personal").disabled= false;
+            document.getElementById("sort_by_yourself_btn_personal").disabled= false;
+            var help;//equals to undefined
+                if(typeof sub1 !='undefined')
+                {
+                    sub1.style.borderStyle = "none"
+                    sub1 = help;
+                }
+                if(typeof sub2 !='undefined')
+                {
+                    sub2.style.borderStyle = "none"
+                    sub2 = help;
+                }
+            inTheMiddleOfSwitch = false;
             
+        }
+        function updatingLocalPos(favorites,poiId)
+        {
+            var index = favorites.indexOf(poiId+"?");
+            var temp = favorites.substring(index+poiId.length+1);
+            var index2 = temp.indexOf(",");
+            var position = temp;
+            if(index2!=-1)
+            {
+                position = temp.substring(0,index2);
+            }
+            
+            var positionNum = parseInt(position);
+            var split = favorites.split(",");
+            for(var i = positionNum+1;i<split.length;i++)
+            {
+                favorites = favorites.replace("?"+i,"?"+(i-1));
+            }
+            return favorites
+        }
+        function removeFromLocal(favorites,poiId)
+        {
+            favorites = updatingLocalPos(favorites,poiId)
+            
+            var index = favorites.indexOf(poiId+"?");
+            
+            if(index <=0)
+            {
+                var index2 = favorites.indexOf(",")
+                if(index==-1)//only one
+                {
+            
+                    favorites = "";
+                }
+                else
+                {
+            
+                    favorites = favorites.substring(index2+1);
+                }
+            }
+            else
+            {
+            
+
+                var temp = favorites.substring(index);
+                var index3 =temp.indexOf(",");
+                if(index3!=-1)
+                    favorites = favorites.substring(0,index-1)+ temp.substring(index3);
+                else
+                    favorites = favorites.substring(0,index-1)
+            }
+         
+            
+            numberOfFavorites--;
+            window.sessionStorage.setItem("favorite",favorites);
+        }
+        function getLocalFavorites()
+        {
+            var favorites = window.sessionStorage.getItem("favorite");
+            if(favorites === null)
+                return [];
+                
+            var split = favorites.split(",");
+            
+            var favoriteName = [];
+            for(var i =0; i<split.length;i++)
+            {
+                var index = split[i].indexOf("?");
+                favoriteName.push(split[i].substring(0,index));
+            }
+            return favoriteName;
+        }
+        function getIdByPositionLocal(pos)
+        {
+            var favorites = window.sessionStorage.getItem("favorite");
+            if(favorites === null)
+                return [];
+                
+            var split = favorites.split(",");
+            
+            var favoriteName = [];
+            for(var i =0; i<split.length;i++)
+            {
+                var index = split[i].indexOf("?");
+                if(parseInt(split[i].substring(index+1)) == pos)
+                    return split[i].substring(0,index);
+            }
+            return "";
+        }
+        function getPositionByIdLocal(id)
+        {
+            var favorites = window.sessionStorage.getItem("favorite");
+            if(favorites === null)
+                return [];
+                
+            var split = favorites.split(",");
+            
+            var favoriteName = [];
+            for(var i =0; i<split.length;i++)
+            {
+                var index = split[i].indexOf("?");
+                if(split[i].substring(0,index) === id)
+                    return parseInt(split[i].substring(index+1));
+            }
+            return -1;
         }
         function switchPlaces(array,category,index1,index2)
         {
@@ -1180,11 +1405,19 @@
             }
             return element.id;
         }
+        function tryLogin()
+        {
+            var token = window.sessionStorage.getItem("token")
+            if(token!=null)
+            {
+                angular.element(document.getElementById("login")).scope().autoLogin(token);
+            }
+        }
         function Initialize()
         {
-            window.sessionStorage.removeItem("favorite")
-
-       
+           // window.sessionStorage.removeItem("favorite")
+           //window.sessionStorage.removeItem("token")
+            
 
             
             modal = document.getElementById('myModal');
@@ -1194,17 +1427,9 @@
                     modal.style.display = "none";
                     GoTo(prevSection);
                 }
-            //Creating array of users
-            usersArr = new Array();
+         
            
-            //Creating the fake user
-            var fakeUser = new Object();
-            fakeUser.username = "a";
-            fakeUser.password = "a";
-            fakeUser.firstName = "a";
-            fakeUser.email = "a";
-            fakeUser.lastname = "a";
-            //fakeUser.birthdate = today;
+
             src = {};
             photoDisplay("");
             document.getElementById("select_category_filter").onchange = function()
@@ -1231,6 +1456,7 @@
                 if(!checkedSort)
                 {
                     document.getElementById("sort_by_rank_btn").style.backgroundColor = "cadetblue" ;
+                    
                 }
                 else
                 {
@@ -1255,50 +1481,62 @@
             };
             document.getElementById("sort_by_rank_btn_personal").onclick = function()
             {
-                checkedSort_personal = !checkedSort_personal;
-                if(!checkedSort_personal)
+                if(!inTheMiddleOfSwitch)
                 {
-                    document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue" ;
-                }
-                else
-                {
-                    document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "#6495ED";
-                    document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue" ;
-                    isFiltered_personal = false;
+                    checkedSort_personal = !checkedSort_personal;
+                    if(!checkedSort_personal)
+                    {
+                        document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue" ;
+                        
+                    
+                    }
+                    else
+                    {
+                        document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "#6495ED";
+                        document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue" ;
+                        
+                    
+                        isFiltered_personal = false;
 
+                    }
+                    displayPhotosPersonalByUsername (current.username);
                 }
-                displayPhotosPersonalByUsername (current.username);
-                
                 
             };
             document.getElementById("filter_by_category_btn_personal").onclick = function()
             {
-                isFiltered_personal = !isFiltered_personal;
-                if(!isFiltered_personal)
+                if(!inTheMiddleOfSwitch)
                 {
-                    document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue" ;
+                    isFiltered_personal = !isFiltered_personal;
+                    if(!isFiltered_personal)
+                    {
+                        document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "cadetblue" ;
+                        document.getElementById("sort_by_rank_btn_personal").disabled= false;
+                        document.getElementById("sort_by_yourself_btn_personal").disabled= false;
 
-                }
-                else
-                {
-                    checkedSort_personal = false;
-                    document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue" ;
-                    document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "#6495ED";
-                }
-                displayPhotosPersonalByUsername (current.username);
-                
+                    }
+                    else
+                    {
+                        document.getElementById("sort_by_rank_btn_personal").disabled= true;
+                        document.getElementById("sort_by_yourself_btn_personal").disabled= true;
+                        checkedSort_personal = false;
+                        document.getElementById("sort_by_rank_btn_personal").style.backgroundColor = "cadetblue" ;
+                        document.getElementById("filter_by_category_btn_personal").style.backgroundColor = "#6495ED";
+                    }
+                    displayPhotosPersonalByUsername (current.username);
+                }    
                 
             };
            
             resetCountries();
 
-            usersArr.push(fakeUser);
-            
+           
+            tryLogin();
             document.getElementById('POI_user_menu').hidden = true;
             document.getElementById('sort_POI').hidden = true;
             setImagesOnClick();
             changeHello();
-         
+            
             var starting_page = 'login';
             GoTo(starting_page);
 
@@ -1311,6 +1549,7 @@
             {
                 
                 let id = images[i].id
+                let givenid = id;
                 if(id.substring(id.length-3) === "poi")
                 {
                     id = id.substring(0,id.length-3)
@@ -1327,7 +1566,13 @@
                     //src[images[i].id] =images[i].src;
                     images[i].onclick = function ()
                     {
-                        displaySinglePhoto(id);
+                        if(!inTheMiddleOfSwitch)
+                            displaySinglePhoto(id);
+                        else
+                        {
+                            console.log("summon1")
+                            addSub(givenid);
+                        }
                     };
                 }
                 
@@ -1342,6 +1587,7 @@
         {
             document.getElementById("signup_menu").hidden = true;
             document.getElementById("POI_user_menu").hidden = false;
+            numberOfFavorites = angular.element(document.getElementById('POI_user')).scope().getNumberOfFavorites(current.username)
             changeHello();
             GoTo('POI_user');
         }
@@ -1573,8 +1819,12 @@
       
         #sort_POI_personal
         {
-            padding-left: 40%;
+            padding-left: 35%;
             background-color:cadetblue;
+        }
+        #upload_btn
+        {
+            height: fit-content;
         }
        
 </style>
@@ -1584,7 +1834,7 @@
     <li id="signup_menu" onclick="GoTo('signup')"><a>Sign Up</a></li>
     <li id="about_menu" onclick="GoTo('about')"><a>About</a></li>
     <li id="POI_menu" onclick="GoTo('POI')"><a>POI's</a></li>
-    <li id="POI_user_menu" onclick="GoTo('POI_user')"><a>Personal Area</a></li>
+    <li id="POI_user_menu" onclick="GoTo('POI_user')"><a id="favoriteCountDisplayer">Personal Area</a></li>
     <li id="search_menu"><a>search:</a></li>
     <li id="search_menu_right"><input type="text" id="search_menu_txt" text-align ="center"> </li>
     <li id="commit_btn"> <input class="btn" type="button" id="search_btn" value="search" onclick="search()"></li>
@@ -1601,26 +1851,44 @@
 <ul id="sort_POI_personal">
     <li id="filter_by_category_btn_personal"><a>Sort by category</a></li>
     <li id="sort_by_rank_btn_personal"><a>Sort by rank</a></li>  
+    <li id="sort_by_yourself_btn_personal" onclick="sortAlone()"><a>Sort by Yourself</a></li>  
     <li id="upload_personal"><input class="btn" type="button" id="upload_btn" value="Upload 2 Server"  onclick = "uploadToServer()"></li>  
 </ul>
 <script type="text/javascript">
-var localSave =[]
+
 var numberOfFavorites = -1;
 function uploadToServer()
 {
     
     var favorites = window.sessionStorage.getItem("favorite");
     var split = favorites.split(",");
-    console.log(split)
     for(var i=0; i<split.length;i++)
     {
         var index = split[i].indexOf("?");
         angular.element(document.getElementById('POI_user')).scope().uploadFavorite(current.username,split[i].substring(0,index),split[i].substring(index+1));
     }
-    
 
     
 
+    
+
+}
+function displayNumberOfFavorites()
+{
+    var id="favoriteCountDisplayer";
+  
+    var displayer = document.getElementById(id);
+    displayer.innerHTML="Personal Area("+numberOfFavorites+")";
+    var timeInseconds =3;
+    setTimeout(() => {
+  displayer.innerHTML="Personal Area"
+    , 1000*timeInseconds});
+    
+}
+function checkIfFavoriteLocal(id)
+{
+    var favorites = window.sessionStorage.getItem("favorite");
+    return (favorites.indexOf(id+"?"))!= -1;
 }
 function uploadLocal(id)
 {
@@ -1641,9 +1909,9 @@ function uploadLocal(id)
                 idNew = id.substring(0,id.length-4)
             }   
         }
-        if(favorites.indexOf(idNew+"?"+position)==-1)
+        if(favorites.indexOf(idNew+"?")==-1)
             favorites = favorites+","+idNew+"?"+position;
-    localSave.push(idNew)
+  
     
     window.sessionStorage.setItem("favorite",favorites)
     
@@ -1651,7 +1919,12 @@ function uploadLocal(id)
 function switchValues(id1,position1,id2,position2)
 {
     var favorites = window.sessionStorage.getItem("favorite")
-
+  
+    console.log("Switching between "+id1+" to "+ id2 );
+    console.log("before switch")
+    console.log(favorites);
+    console.log("look for1 "+id1+"?"+position1)
+    console.log("look for2 "+id2+"?"+position2)
     var index1 = favorites.indexOf(id1+"?"+position1)
     var index2 = favorites.indexOf(id2+"?"+position2)
     var minId = '';
@@ -1678,9 +1951,18 @@ function switchValues(id1,position1,id2,position2)
             maxPosition = position2;
             maxIndex = index2;
     }
-    var expMax = maxId+"?"+maxPosition;
-    var expMin = minId+"?"+minPosition;
+    var expMax = maxId;
+    var expMin = minId;
+    console.log("minIndex " +minIndex)
+    console.log("maxIndex " +maxIndex)
+    console.log("1 "+favorites.substring(0,minIndex))//until the min
+    console.log("2 "+expMax)//insteadof the min
+    console.log("3 "+favorites.substring(minIndex+expMin.length,maxIndex))
+    console.log("4 "+expMin)
+    console.log("5 "+ favorites.substring(maxIndex+expMax.length))
     favorites = favorites.substring(0,minIndex)+expMax+favorites.substring(minIndex+expMin.length,maxIndex)+expMin+favorites.substring(maxIndex+expMax.length)
+    console.log("after switch")
+    console.log(favorites);
     window.sessionStorage.setItem("favorite",favorites)
 }
 </script>
@@ -1927,6 +2209,7 @@ function switchValues(id1,position1,id2,position2)
             bigImage.width = width;
             bigImage.height = height;
             bigImage.id = "big"+id;
+            
             //The container
             const container = document.createElement('div');
             container.id = "container"+id;
@@ -1938,34 +2221,44 @@ function switchValues(id1,position1,id2,position2)
             //The small img
             //Add the small img only of logged..
             const smallImage = document.createElement('img');
+            smallImage.id = "small"+id;
             smallImage.src = "source/unchecked.png";
             if(IsLogged())
-                angular.element(document.getElementById('about')).scope().checkIfFavorite(current.username,id);
+                angular.element(document.getElementById('about')).scope().checkIfFavorite(current.username,id,smallImage);
             const smallWidth = width/9;
             const smallHeight = height/9;
             smallImage.width = smallWidth;
             smallImage.height = smallHeight;
-            smallImage.id = "small"+id;
+            
             smallImage.style.marginBottom= (height - smallHeight)+ "px";
             smallImage.style.left = width+"px";
             smallImage.style.position = "relative";
             smallImage.onclick = function()
             {
-                var small =  document.getElementById("small"+id);
-                if(small.src.includes( "source/unchecked.png"))
+                if(!inTheMiddleOfSwitch)
                 {
-                    //add
-                    uploadLocal(id);
-                    smallImage.src = "source/checked.png";
+                    var small =  document.getElementById("small"+id);
+                    if(small.src.includes( "source/unchecked.png"))
+                    {
+                        //add
+                        uploadLocal(id);
+                        displayNumberOfFavorites();
+                        smallImage.src = "source/checked.png";
+                     
+                    }
+                    else
+                    {
+                        //remove
+                        smallImage.src = "source/unchecked.png";
+                        angular.element(document.getElementById('POI_user')).scope().removeFavorite(current.username,id)
+                    }
+                    
                 }
                 else
                 {
-                    //remove
-                    smallImage.src = "source/unchecked.png";
-                    angular.element(document.getElementById('POI_user')).scope().removeFavorite(current.username,id)
+                    console.log("summon2")
+                    addSub(bigImage.id);
                 }
-                
-                
             }
 
             
@@ -1995,10 +2288,19 @@ function switchValues(id1,position1,id2,position2)
             container.appendChild(smallImage2);
                 smallImage2.onclick = function()
                 {
-                    modal.style.display = "none";
-                    var small =  document.getElementById("container"+id);
-                    showAbout(small);
-                    GoTo("modalSection");
+                    if(!inTheMiddleOfSwitch)
+                    {
+                        modal.style.display = "none";
+                        var small =  document.getElementById("container"+id);
+                        showAbout(small);
+                        GoTo("modalSection");
+                    }
+                    else
+                    {
+                        console.log("summon3")
+                        addSub(bigImage.id);
+                    }
+                        
                     
                 }
                 var isLogged = IsLogged();
@@ -2010,7 +2312,39 @@ function switchValues(id1,position1,id2,position2)
             return container;
             
         } 
-
+        function addSub(id)
+        { 
+            if(id.substring(id.length-4) != "pois")
+                return
+            if(typeof sub1 === 'undefined')
+            {
+                sub1 = document.getElementById(id);
+                sub1.style.borderStyle = "solid"
+                sub1.style.borderWidth = "15px";
+                sub1.style.borderColor = "Green";
+            }
+            else
+            {
+                sub1.style.borderStyle = "none"
+                if(sub1.id != id)
+                {
+                    sub2 = document.getElementById(id);
+                    
+                    var id1 = sub1.id.substring(3,sub1.id.length-4);
+                    var id2 = sub2.id.substring(3,sub2.id.length-4);
+                    
+                    var pos1 = getPositionByIdLocal(id1);
+                    var pos2 = getPositionByIdLocal(id2);
+                    switchValues(id1,pos1,id2,pos2);
+                    inTheMiddleOfSwitch = false;
+                    GoTo('POI_user');
+                }
+                else
+                {
+                    resetToolbarPersonal()
+                }
+            }
+        }
         function getSelectValues(select) {
             var result = [];
             var options = select && select.options;
@@ -2070,7 +2404,7 @@ function switchValues(id1,position1,id2,position2)
             newUser.answer = answer;
             newUser.categories = getSelectValues(category_select);
             //newUser.birthdate = birthDate;
-            usersArr.push(newUser);
+            
             GoTo('login');
             return newUser;
             
@@ -2114,6 +2448,7 @@ function switchValues(id1,position1,id2,position2)
             {
                 display: inline-flex;
                 width: 100%;
+            
             }
             #explore_div
             {
@@ -2208,44 +2543,13 @@ function switchValues(id1,position1,id2,position2)
             }
             function loginPressed()
             {
-    
-                var isValid = ValidateUser();
-                var errorLabel = document.getElementById('errors_login');
-                if(isValid)
-                {
-           
-                    whenLoggin();
-                    errorLabel.innerText = "";
-                    GoTo('POI_user');
-    
-    
-                }
-                else
-                {
-                    var errorMessage = "Wrong username or password, please try again";
-                    errorLabel.innerText = errorMessage;
-                }
-            }
-            function ValidateUser()
-            {
                 var username = document.getElementById('username_login').value;
                 var password = document.getElementById('password_login').value;
-    
-                var i;
-                for (i = 0; i < usersArr.length; i++) {
-                    if(username === usersArr[i].username)
-                    {
-                        if( password === usersArr[i].password)
-                        {
-                            current = usersArr[i];
-                            return true;
-                        }
-    
-                    }
-                }
-                return false;
-    
+                
+                angular.element(document.getElementById("login")).scope().login(username,password);
+                
             }
+        
          
         </script>
     </section>
@@ -2437,11 +2741,18 @@ function switchValues(id1,position1,id2,position2)
             if(pointOfInterestArray[0].length>=2)
             {
 
-            
-
+                const  size = 960;
+                var width = (size-pointOfInterestArray[0].length*15)/pointOfInterestArray[0].length;
+                if(width>=300)
+                {
+                    width = 300;
+                }
+                var height = width;
+                
                 for(var j=0; j<pointOfInterestArray[0].length;j++)
                 {
-                    var container = addCustomImage(pointOfInterestArray[0][j]["src"],250,250,selection,pointOfInterestArray[0][j]["id"]+"pois");
+                 
+                    var container = addCustomImage(pointOfInterestArray[0][j]["src"],width,height,selection,pointOfInterestArray[0][j]["id"]+"pois");
                     container.classList.add("personal_image");
                     container.style.cssFloat = "left";
                     containers.push(container);
@@ -2492,6 +2803,7 @@ function switchValues(id1,position1,id2,position2)
         {
             margin-left: 5%;
             margin-top: 5%;
+            
         }
        
         #about_content

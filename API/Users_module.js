@@ -33,17 +33,22 @@ var registerUser = function registerUser(req, res) {
 
 var login = async function login(req, res) {
     if (validator.validateInjection(req)) {
+        console.log("username "+req.body.username)
     const user = await getUser(req.body.username);
         if(user) {
-            if (user.password !== req.body.password) {
-                const error = "wrong password";
-                res.status(403).json({error});
-            } else {
+            if (user.password === req.body.password) {
                 //create the token.
+                console.log("here1")
                 const token = jwt.sign(user, secret);
                 res.status(200).send({"token": token});
-            }
+                
+            } 
+            console.log("here2")
         }
+        console.log("here3")
+        const error = "wrong password";
+        res.status(403).json({error});
+        
     }
     else {
         const error = "bad input";
@@ -66,7 +71,8 @@ var private = function private(req, res) {
     // verify token
     try {
         req.decoded = jwt.verify(token, secret);
-        res.status(200).send({ result: "valid token" });
+        
+        res.status(200).send({ result: "valid token" ,username:req.decoded["username"]});
     } catch (exception) {
         res.status(400).send({ result: "invalid token" });
     }
@@ -100,11 +106,11 @@ var restorePassword = async function restorePassword(req, res) {
         if (user.answer === req.body.answer) {
             var currUser = await getUser(user.username);
             message = currUser.password;
-            console.log("match "+message);
+        
             res.status(200).json({ message });
         } else {
             message = "wrong answer";
-            console.log(message);
+     
             res.status(403).json({ message });
         }
     }

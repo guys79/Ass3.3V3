@@ -31,7 +31,7 @@ var RemovePOI = function RemovePOI(req, res) {
             newId= newId.replace("+"," ");
         }
         newId = newId.substring(1,newId.length-1);
-        console.log("username = "+req.query.username +" poiName = "+newId+" ????????????????????????????")
+        
         DButilsAzure.execQuery("DELETE FROM poisOfUser WHERE username='" + req.query.username + "' AND poiName='" + newId + "'")
             .then(function (result) {
                 res.send(result);
